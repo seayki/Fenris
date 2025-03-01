@@ -10,8 +10,8 @@ namespace Fenris.DiscoveryServices
 {
     public class SteamDiscoveryService
     {
-        private string steamPath;
-        private List<string> steamLibraries = new List<string>();
+        private readonly string steamPath;
+        private readonly List<string> steamLibraries = new();
 
         public SteamDiscoveryService()
         {
@@ -24,7 +24,7 @@ namespace Fenris.DiscoveryServices
 
         public List<Process> DiscoverSteamGames()
         {
-            List<Process> processes = new List<Process>();
+            List<Process> steamGames = new();
 
             foreach (var library in steamLibraries)
             {
@@ -33,21 +33,22 @@ namespace Fenris.DiscoveryServices
 
                 foreach (var file in Directory.GetFiles(steamAppsPath, "appmanifest_*.acf"))
                 {
-                    Process steamProcess = ParseGameFromAcf(file, steamAppsPath);
-                    if (steamProcess != null)
+                    var gameInfo = ParseGameFromAcf(file, steamAppsPath);
+                    if (gameInfo != null)
                     {
-                        processes.Add(steamProcess);
+                        steamGames.Add(gameInfo);
                     }
                 }
             }
-            return processes;
+            return steamGames;
         }
 
-        private Process ParseGameFromAcf(string filePath, string steamAppsPath)
+        private Process? ParseGameFromAcf(string filePath, string steamAppsPath)
         {
             string gameName = null;
             string installDir = null;
             string appId = null;
+            string executableName = null;
 
             foreach (var line in File.ReadLines(filePath))
             {
@@ -57,14 +58,14 @@ namespace Fenris.DiscoveryServices
                     installDir = line.Split('"')[3];
             }
 
-            if (!string.IsNullOrEmpty(installDir))
+            if (!string.IsNullOrEmpty(installDir) && !string.IsNullOrEmpty(appId))
             {
                 string fullPath = Path.Combine(steamAppsPath, "common", installDir);
                 if (Directory.Exists(fullPath))
                 {
                     gameName = installDir;
-                    var process = new Process(gameName, $"https://cdn.cloudflare.steamstatic.com/steam/apps/{appId}/header.jpg", fullPath, FindExecutable(fullPath), false);
-                    return process;
+                    executableName = FindExecutable(fullPath); // Get the actual executable name
+                    return new Process(gameName, $"https://cdn.cloudflare.steamstatic.com/steam/apps/{appId}/header.jpg", executableName);
                 }
             }
             return null;
@@ -72,13 +73,13 @@ namespace Fenris.DiscoveryServices
 
         private List<string> GetSteamLibraryFolders()
         {
-            List<string> libraries = new List<string> { steamPath };
-
+            List<string> libraries = new() { steamPath };
             string libraryFile = Path.Combine(steamPath, "steamapps", "libraryfolders.vdf");
+
             if (!File.Exists(libraryFile)) return libraries;
 
             string[] lines = File.ReadAllLines(libraryFile);
-            Regex regex = new Regex(@"^\s*""\d+""\s*""([^""]+)""");
+            Regex regex = new(@"^\s*""\d+""\s*""([^""]+)""");
 
             foreach (var line in lines)
             {
@@ -93,10 +94,8 @@ namespace Fenris.DiscoveryServices
 
         private string GetSteamInstallPath()
         {
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam"))
-            {
-                return key?.GetValue("InstallPath") as string;
-            }
+            using RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Valve\Steam");
+            return key?.GetValue("InstallPath") as string;
         }
 
         private string FindExecutable(string gameFolder)

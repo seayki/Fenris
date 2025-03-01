@@ -5,9 +5,11 @@ namespace Fenris.DiscoveryServices
     public class DiscoveryService : IDiscoveryService
     {
         SteamDiscoveryService steamDiscoveryService;
-        public DiscoveryService(SteamDiscoveryService steamDiscoveryService)
+        ApplicationDiscoveryService applicationDiscoveryService;
+        public DiscoveryService(SteamDiscoveryService steamDiscoveryService, ApplicationDiscoveryService applicationDiscoveryService)
         {
             this.steamDiscoveryService = steamDiscoveryService;
+            this.applicationDiscoveryService = applicationDiscoveryService;
         }
         public List<Process> DiscoverGames()
         {
@@ -17,6 +19,11 @@ namespace Fenris.DiscoveryServices
             if (steamProcesses != null)
             {
                 processes.AddRange(steamProcesses);
+            }
+            var applicationProcesses = applicationDiscoveryService.DiscoverNonSteamGamesAndApps();
+            if (applicationProcesses != null)
+            {
+                processes.AddRange(applicationProcesses);
             }
             return processes;
         }
