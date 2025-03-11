@@ -8,9 +8,9 @@ namespace Fenris.DiscoveryServices
 {
     public interface IUserConfiguration
     {
-        public BlockSettings LoadBlockSettings();
+        public BlockSettings? LoadBlockSettings();
         public void StoreBlockSettings(BlockSettings settings);
-        public List<string> LoadBlockedWebsites();
-        public void StoreBlockedWebsites(List<string> websites);
+        public BlockSettingUrl? LoadBlockedWebsites();
+        public void StoreBlockedWebsites(BlockSettingUrl);
     }
 }

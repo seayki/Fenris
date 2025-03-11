@@ -91,13 +91,16 @@ namespace Fenris.DiscoveryServices
             return systemDirectories.Any(dir => path.StartsWith(dir, StringComparison.OrdinalIgnoreCase));
         }
 
-        private string GetIconUrl(string exePath)
+        private string? GetIconUrl(string exePath)
         {
             try
             {
                 // Check if the file exists
                 if (!File.Exists(exePath))
-                    return null;
+                {
+                    return null!;
+                }
+                   
 
                 // Use Icon.ExtractAssociatedIcon to get the icon from the executable
                 var icon = Icon.ExtractAssociatedIcon(exePath);

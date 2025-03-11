@@ -104,7 +104,15 @@ namespace FenrisUI
             if (this._userConfiguration.LoadBlockSettings() != null)
             {
                 BlockSettings = this._userConfiguration.LoadBlockSettings();
-                IsBlocked = BlockSettings.IsBlockActive();
+                if (BlockSettings != null)
+                {
+                    IsBlocked = BlockSettings.IsBlockActive();
+                    BlockSettings.BlockedProcesses.ForEach(BlockedProcesses => SelectedProcesses.Add(BlockedProcesses));
+                }
+                else
+                {
+                    IsBlocked = false;
+                }
                 UpdateBlockStatusColor();
             }
             if (this._userConfiguration.LoadBlockedWebsites() != null)
@@ -310,7 +318,7 @@ namespace FenrisUI
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 0, 0, 10),
-                Width = 270 // Added width to control the box size
+                Width = 270,
             };
 
             // Create StackPanel for vertical layout

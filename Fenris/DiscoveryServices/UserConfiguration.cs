@@ -10,13 +10,13 @@ namespace Fenris.DiscoveryServices
 {
     public class UserConfiguration : IUserConfiguration
     {
-        public List<string>? LoadBlockedWebsites()
+        public BlockSettingUrl? LoadBlockedWebsites()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             if (File.Exists(filePath))
             {
                 string json = File.ReadAllText(filePath);
-                var blockedWebsites = JsonSerializer.Deserialize<List<string>>(json);
+                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingUrl>(json);
                 if (blockedWebsites != null)
                 {
                     return blockedWebsites;
@@ -25,17 +25,33 @@ namespace Fenris.DiscoveryServices
             return null;
         }
 
-        public void StoreBlockedWebsites(List<string> websites)
+        public void StoreBlockedWebsites(BlockSettingUrl block)
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
             var options = new JsonSerializerOptions
             {
-                WriteIndented = true 
+                WriteIndented = true
             };
 
-            string json = JsonSerializer.Serialize(websites, options);
+            string json = JsonSerializer.Serialize(block, options);
             File.WriteAllText(filePath, json);
+        }
+
+        public List<string>? ReceiveUrlIps(string url)
+        {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
+            if (File.Exists(filePath))
+            {
+                string json = File.ReadAllText(filePath);
+                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingUrl>(json);
+                if (blockedWebsites != null)
+                {
+                    return blockedWebsites.UrlIps[url];
+                }
+            }
+            return null;
         }
 
         public BlockSettings? LoadBlockSettings()
@@ -50,7 +66,7 @@ namespace Fenris.DiscoveryServices
                 };
                 return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
             }
-            return new BlockSettings(); // Default if file doesn’t exist
+            return null;
         }
         public void StoreBlockSettings(BlockSettings settings)
         {
@@ -73,7 +89,7 @@ namespace Fenris.DiscoveryServices
     {
         public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return TimeSpan.Parse(reader.GetString());
+            return TimeSpan.Parse(reader.GetString()!);
         }
 
         public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)

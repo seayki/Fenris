@@ -5,7 +5,7 @@ VisualStudioVersion = 17.13.35731.43
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fenris", "Fenris\Fenris.csproj", "{67BC93F6-ED3F-4FB3-8556-1A327F8F3B3A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FenrisConsoleTestingApplication", "FenrisConsoleTestingApplication\FenrisConsoleTestingApplication.csproj", "{97189C15-8F3A-428F-BC7B-B54A5A47929E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FenrisConsoleTesting", "FenrisConsoleTestingApplication\FenrisConsoleTesting.csproj", "{97189C15-8F3A-428F-BC7B-B54A5A47929E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{67BC93F6-ED3F-4FB3-8556-1A327F8F3B3A} = {67BC93F6-ED3F-4FB3-8556-1A327F8F3B3A}
 	EndProjectSection

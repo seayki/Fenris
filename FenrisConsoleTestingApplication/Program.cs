@@ -3,15 +3,16 @@ using static Fenris.BlockSettings;
 using Fenris;
 using Fenris.DiscoveryServices;
 
-var steamDiscoveryService = new SteamDiscoveryService();
-var applicationDiscoveryService = new ApplicationDiscoveryService();
-var discoveryService = new DiscoveryService(steamDiscoveryService, applicationDiscoveryService);
-List<Process> processes = discoveryService.DiscoverGames();
+//var steamdiscoveryservice = new steamdiscoveryservice();
+//var applicationdiscoveryservice = new applicationdiscoveryservice();
+//var discoveryservice = new discoveryservice(steamdiscoveryservice, applicationdiscoveryservice);
+//list<process> processes = discoveryservice.discovergames();
 
-Console.WriteLine("Discovered Processes:");
-foreach (var process in processes)
+var webBlocker = new WebBlocker();
+var urlsToBlock = new List<string>
 {
-    Console.WriteLine($"- {process.Name}");
-    Console.WriteLine($"  ID: {process.Executable}");
-    Console.WriteLine($"  Icon: {process.IconUrl}");
-}
+    "https://www.twitter.com"
+};
+webBlocker.AddBlock(urlsToBlock);
+var iconsAndUrls = await webBlocker.GetBlockedUrlAndIcon();
+Console.ReadKey();

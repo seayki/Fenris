@@ -100,7 +100,7 @@
                     <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,0,0,0"
                                 xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
                         <Border Padding="20" Background="White" CornerRadius="20" MaxWidth="700">
-                            <Grid HorizontalAlignment="Center">
+                            <Grid HorizontalAlignment="Center" MaxWidth="2010">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -166,11 +166,15 @@
                 </Grid>
             </PivotItem>
 
-            <PivotItem Header="Websites" FontFamily="Dubai">
-                <TextBlock Text="Block routing to chosen websites." />
-            </PivotItem>
+                <PivotItem Header="Websites" FontFamily="Dubai">
+                    <Border CornerRadius="25" Background="#FFFFFF">
+                        <ComboBox>
 
-            <PivotItem Header="Feeds" FontFamily="Dubai">
+                        </ComboBox>
+                    </Border>
+                </PivotItem>
+
+                <PivotItem Header="Feeds" FontFamily="Dubai">
                 <TextBlock Text="TBD." />
             </PivotItem>
 
