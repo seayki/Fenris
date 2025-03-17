@@ -2,7 +2,7 @@
 {
     public interface IDiscoveryService
     {
-        List<Process> DiscoverGames();
-        List<Process> DiscoverSocials(); 
+        Task<List<Process>> DiscoverGames();
+        Task<List<Process>> DiscoverSocials(); 
     }
 }

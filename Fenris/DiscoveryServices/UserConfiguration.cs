@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
 {
-    public class UserConfiguration : IUserConfiguration
+    public static class UserConfiguration 
     {
-        public BlockSettingUrl? LoadBlockedWebsites()
+        public static async Task<BlockSettingsUrl?> LoadBlockedWebsites()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             if (File.Exists(filePath))
             {
                 string json = File.ReadAllText(filePath);
-                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingUrl>(json);
+                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingsUrl>(json);
                 if (blockedWebsites != null)
                 {
                     return blockedWebsites;
@@ -25,36 +25,68 @@ namespace Fenris.DiscoveryServices
             return null;
         }
 
-        public void StoreBlockedWebsites(BlockSettingUrl block)
+        public static Task ClearWebsiteBlock()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true
             };
-
-            string json = JsonSerializer.Serialize(block, options);
+            string json = JsonSerializer.Serialize(new BlockSettingsUrl(), options);
             File.WriteAllText(filePath, json);
+            return Task.CompletedTask;
         }
 
-        public List<string>? ReceiveUrlIps(string url)
+        public static Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            if (File.Exists(filePath))
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
+            string json;
+            var options = new JsonSerializerOptions
             {
-                string json = File.ReadAllText(filePath);
-                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingUrl>(json);
-                if (blockedWebsites != null)
+                WriteIndented = true
+            };
+            if (shouldCombine)
+            {
+                var blockCombined = LoadBlockedWebsites().Result ?? new BlockSettingsUrl();
+                foreach (var item in block.UrlBlock)
                 {
-                    return blockedWebsites.UrlIps[url];
+                    blockCombined.UrlBlock.Add(item.Key, item.Value);
                 }
+                json = JsonSerializer.Serialize(blockCombined, options);
             }
-            return null;
+            else
+            {
+                json = JsonSerializer.Serialize(block, options);
+            }             
+            File.WriteAllText(filePath, json);
+            return Task.CompletedTask;
         }
 
-        public BlockSettings? LoadBlockSettings()
+        public static async Task UpdateWebsiteBlockType(string url, BlockType type)
+        {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
+
+            BlockSettingsUrl blockedWebsites = await LoadBlockedWebsites() ?? new BlockSettingsUrl(url, type);
+
+            blockedWebsites.UrlBlock[url] = type;
+            await StoreBlockedWebsites(blockedWebsites, false);
+        }
+
+        public static async Task RemoveWebsiteBlock(string url)
+        {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
+            var blockedWebsites = await LoadBlockedWebsites() ?? new BlockSettingsUrl();
+            if (blockedWebsites.UrlBlock.ContainsKey(url))
+            {
+                blockedWebsites.UrlBlock.Remove(url);
+            }
+            await StoreBlockedWebsites(blockedWebsites, false);
+        }
+
+        public static async Task<BlockSettings?> LoadBlockSettings()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSettings.json");
             if (File.Exists(filePath))
@@ -64,11 +96,11 @@ namespace Fenris.DiscoveryServices
                 {
                     Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
                 };
-                return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
+                return JsonSerializer.Deserialize<BlockSettings>(json, options) ?? new BlockSettings();
             }
             return null;
         }
-        public void StoreBlockSettings(BlockSettings settings)
+        public static Task StoreBlockSettings(BlockSettings settings)
         {
             // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSettings.json");
@@ -81,6 +113,7 @@ namespace Fenris.DiscoveryServices
 
             string json = JsonSerializer.Serialize(settings, options);
             File.WriteAllText(filePath, json);
+            return Task.CompletedTask;
         }
     }
 

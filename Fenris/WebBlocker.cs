@@ -2,111 +2,118 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Net;
 using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Fenris
 {
-    public class WebBlocker
+    public static class WebBlocker
     {
-        private static readonly HttpClient client = new HttpClient();
-        private readonly Dictionary<string, List<string>> blockedUrls = new();
-        private readonly UserConfiguration userConfig = new();
-        public WebBlocker()
+        // Add a list of domains to the hosts file, redirecting to 127.0.0.1
+        public static void AddWebBlocks(List<string> domains)
         {
-            
-        }
-        public void AddBlock(List<string> urls)
-        {
-            foreach (var url in urls)
+            var hostPath = @"C:\Windows\System32\drivers\etc\hosts";
+            var block = UserConfiguration.LoadBlockSettings().Result!.Block;
+            if (domains == null || !domains.Any())
+                throw new ArgumentException("Domains list cannot be null or empty.");
+
+            try
             {
-                var ipAddresses = RetrieveIPRange(url);
-                if (!ipAddresses.Any()) continue;
+                string[] existingLines = File.Exists(hostPath) ? File.ReadAllLines(hostPath) : Array.Empty<string>();
+                var newEntries = new List<string>();
 
-                blockedUrls[url] = ipAddresses; // Track URL and associated IPs
-
-                foreach (var address in ipAddresses)
+                foreach (var domain in domains.Distinct()) // Remove duplicates
                 {
-                    string ruleName = $"Block_{address}";
-                    string command = $"netsh advfirewall firewall add rule name=\"{ruleName}\" dir=out action=block remoteip={address}";
-                    ExecuteCommand(command);
+                    if (string.IsNullOrWhiteSpace(domain))
+                         
+                        continue;
+
+                    string entry = $"127.0.0.1 {domain}";
+                    if (!existingLines.Any(line => line.Trim() == entry.Trim()))
+                    {
+                        newEntries.Add(entry);
+                        Console.WriteLine($"Added hosts file entry: {entry}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Entry already exists: {entry}");
+                    }
+                }
+
+                if (newEntries.Any())
+                {
+                    File.AppendAllLines(hostPath, newEntries);
+                    FlushDnsCache();
                 }
             }
-            userConfig.StoreBlockedWebsites(new BlockSettingUrl(blockedUrls));
-        }
-
-        public void RemoveFirewallBlock(string url)
-        {
-            var urlIPs = userConfig.ReceiveUrlIps(url);
-            foreach (var ip in urlIPs)
+            catch (UnauthorizedAccessException)
             {
-                RemoveFirewallRuleByIp(ip);
+                Console.WriteLine("Error: Run as administrator to modify hosts file.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding to hosts file: {ex.Message}");
             }
         }
-        private void RemoveFirewallRuleByIp(string ip)
+
+        // Remove a specific domain from the hosts file based on the stored URL
+        public static void RemoveBlock(string url)
         {
-            string ruleName = $"Block_{ip}";
-            string command = $"netsh advfirewall firewall delete rule name=\"{ruleName}\"";
-            ExecuteCommand(command);
+            var hostPath = @"C:\Windows\System32\drivers\etc\hosts";
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    Console.WriteLine("Error: Could not extract domain from URL.");
+                    return;
+                }
+
+                string[] existingLines = File.Exists(hostPath) ? File.ReadAllLines(hostPath) : Array.Empty<string>();
+                string entryToRemove = $"127.0.0.1 {url}";
+
+                var updatedLines = existingLines.Where(line => line.Trim() != entryToRemove.Trim()).ToArray();
+
+                if (updatedLines.Length < existingLines.Length)
+                {
+                    File.WriteAllLines(hostPath, updatedLines);
+                    FlushDnsCache();
+                    Console.WriteLine($"Removed hosts file entry: {entryToRemove}");
+                }
+                else
+                {
+                    Console.WriteLine($"No entry found to remove for: {url}");
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Console.WriteLine("Error: Run as administrator to modify hosts file.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error removing from hosts file: {ex.Message}");
+            }
         }
-        private async Task<Icon?> GetFaviconFromUrl(string url)
+
+
+        // Helper method to flush DNS cache
+        private static void FlushDnsCache()
         {
             try
             {
-                string faviconUrl = $"http://{url}/favicon.ico";
-                using HttpResponseMessage response = await client.GetAsync(faviconUrl);
-                if (response.IsSuccessStatusCode)
+                System.Diagnostics.Process.Start(new ProcessStartInfo
                 {
-                    byte[] faviconBytes = await response.Content.ReadAsByteArrayAsync();
-                    using var ms = new MemoryStream(faviconBytes);
-                    return new Icon(ms);
-                }
+                    FileName = "cmd.exe",
+                    Arguments = "/c ipconfig /flushdns",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                })?.WaitForExit();
+                Console.WriteLine("DNS cache flushed.");
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore favicon retrieval failures
-            }
-            return null;
-        }
-
-        private void ExecuteCommand(string command)
-        {
-            ProcessStartInfo processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                Verb = "runas"
-            };
-
-            using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(processInfo)!)
-            {
-                process.WaitForExit();
-                string output = process.StandardOutput.ReadToEnd();
-                if (process.ExitCode != 0)
-                {
-                    throw new Exception($"Command failed: {output}");
-                }
-            }
-        }
-
-        public List<string> RetrieveIPRange(string url)
-        {
-            try
-            {
-                Uri uri = new Uri(url.StartsWith("http") ? url : "http://" + url);
-                string host = uri.Host;
-                var addresses = Dns.GetHostAddresses(host);
-                return addresses.Select(address => address.ToString()).ToList();
-            }
-            catch
-            {
-                return new List<string>(); // Return empty list if DNS lookup fails
+                Console.WriteLine($"Error flushing DNS cache: {ex.Message}");
             }
         }
     }

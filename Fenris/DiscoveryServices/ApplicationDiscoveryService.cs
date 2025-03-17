@@ -63,7 +63,7 @@ namespace Fenris.DiscoveryServices
             {
                 "setup", "install", "redist", "prereq", "crashpad", "uninstall", "vc_redist",
                 "update", "anticheat", "sentry", "pgomgr", "mspdbsrv", "link", "sguard", "cefsharp",
-                "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", "dotnet", "realtek", "adobe", "oracle", "fenris"
+                "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", "dotnet", "realtek", "adobe", "oracle", "fenris", "overwolf"
             };
 
             if (ignoredKeywords.Any(keyword => lowerPath.Contains(keyword)))
@@ -75,20 +75,6 @@ namespace Fenris.DiscoveryServices
 
             //return (depth - rootDepth) <= 2;
             return true;
-        }
-
-
-        private bool IsSystemApp(string path)
-        {
-            // Exclude executables in Windows system directories
-            var systemDirectories = new List<string>
-            {
-                 @"C:\Windows",
-                 @"C:\Windows\System32",
-                 @"C:\Program Files\Common Files"
-            };
-
-            return systemDirectories.Any(dir => path.StartsWith(dir, StringComparison.OrdinalIgnoreCase));
         }
 
         private string? GetIconUrl(string exePath)

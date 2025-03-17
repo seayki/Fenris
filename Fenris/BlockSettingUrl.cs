@@ -7,12 +7,21 @@ using System.Drawing;
 
 namespace Fenris
 {
-    public class BlockSettingUrl
-    {    
-        public Dictionary<string, List<string>> UrlIps { get; set; }
-        public BlockSettingUrl(Dictionary<string, List<string>> block)
+    public class BlockSettingsUrl
+    {
+        public Dictionary<string, BlockType> UrlBlock { get; set; } = new();
+        public BlockSettingsUrl(string url, BlockType type)
         {
-            UrlIps = block;
+            UrlBlock.Add(url, type);
+        }
+        public BlockSettingsUrl()
+        {
+            
+        }
+
+        public void AddEntry(string url, BlockType type)
+        {
+            UrlBlock.Add(url, type);
         }
     }
 }

@@ -14,8 +14,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
+using Windows.ApplicationModel.Background;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
@@ -38,7 +40,7 @@ namespace FenrisUI
         public App()
         {
             this.InitializeComponent();
-            _serviceProvider = ConfigureServices();
+            _serviceProvider = ConfigureServices();            
         }
 
         /// <summary>
@@ -59,13 +61,9 @@ namespace FenrisUI
             services.AddSingleton<SteamDiscoveryService>();
             services.AddSingleton<ApplicationDiscoveryService>();
             services.AddSingleton<IDiscoveryService, DiscoveryService>();
-            services.AddSingleton<IProcessTerminator, ProcessTerminator>();
-            services.AddSingleton<IUserConfiguration, UserConfiguration>();
             // Register MainWindow with DI
             services.AddTransient<MainWindow>();
             return services.BuildServiceProvider();
         }
-
-       
     }
 }

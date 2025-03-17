@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
 {
@@ -11,7 +12,7 @@ namespace Fenris.DiscoveryServices
             this.steamDiscoveryService = steamDiscoveryService;
             this.applicationDiscoveryService = applicationDiscoveryService;
         }
-        public List<Process> DiscoverGames()
+        public async Task<List<Process>> DiscoverGames()
         {
             var processes = new List<Process>();
 
@@ -28,7 +29,7 @@ namespace Fenris.DiscoveryServices
             return processes;
         }
 
-        public List<Process> DiscoverSocials()
+        public async Task<List<Process>> DiscoverSocials()
         {
             throw new NotImplementedException();
         }

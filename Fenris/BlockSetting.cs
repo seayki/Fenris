@@ -60,4 +60,11 @@ namespace Fenris
             return false;
         }
     }
+
+    public enum BlockType
+    {
+        Full,
+        Schedule,
+        None
+    }
 }
