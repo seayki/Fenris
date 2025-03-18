@@ -214,7 +214,6 @@ namespace FenrisUI
                             };
                             addTimeButton.Click += AddTimeButton_Click;
                             timePickersPanel.Children.Add(addTimeButton);
-
                         }
                     }
                 }
