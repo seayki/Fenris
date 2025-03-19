@@ -202,15 +202,16 @@ namespace FenrisUI
                             var addTimeButton = new Button
                             {
                                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
-                                Background = new SolidColorBrush(Color.FromArgb(255, 225, 219, 219)),
+                                Background = new SolidColorBrush(Color.FromArgb(255, 46, 124, 203)),
                                 Content = "Add Time",
-                                Width = 140,
+                                Width = 100,
                                 CornerRadius = new CornerRadius(8),
-                                Padding = new Thickness(12, 6, 12, 6), 
+                                Padding = new Thickness(12, 6, 12, 6),
                                 Tag = day,
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 Opacity = 0.9,
                                 FontWeight = FontWeights.Bold,
+
                             };
                             addTimeButton.Click += AddTimeButton_Click;
                             timePickersPanel.Children.Add(addTimeButton);
@@ -405,16 +406,16 @@ namespace FenrisUI
                     var addTimeButton = new Button
                     {
                         FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
-                        Background = new SolidColorBrush(Color.FromArgb(255, 225, 219, 219)),
+                        Background = new SolidColorBrush(Color.FromArgb(255, 46, 124, 203)),
                         Content = "Add Time",
-                        Width = 140,
+                        Width = 100,
                         CornerRadius = new CornerRadius(8),
-                        Padding = new Thickness(12, 6, 12, 6), 
+                        Padding = new Thickness(12, 6, 12, 6),
                         Tag = day,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Opacity = 0.9,
                         FontWeight = FontWeights.Bold,
-                        
+
                     };
                     addTimeButton.Click += AddTimeButton_Click;
                     timePickersPanel.Children.Add(addTimeButton);
@@ -574,19 +575,25 @@ namespace FenrisUI
             return url;
         }
 
-        public async Task ApplyLabelBlock(object sender, RoutedEventArgs e, string label)
+        public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
         {
-            var websites = GetTopWebsites(label);
-            websites.ForEach(async url =>
+            if (sender is Button button)
             {
-                var icon = await FavIconService.GetFaviconFromUrl(url);
-                var imageIcon = await IconToImageSourceAsync(icon);
-                UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
-                urlBlocks.Add(urlBlock);
-            });
-            var BlockSettingUrl = new BlockSettingsUrl();
-            websites.ForEach(url => BlockSettingUrl.UrlBlock[url] = BlockType.Full);
-            await UserConfiguration.StoreBlockedWebsites(BlockSettingUrl);
+                var label = button.Tag.ToString();
+                var websites = GetTopWebsites(label);
+                websites.ForEach(async url =>
+                {
+                    var icon = await FavIconService.GetFaviconFromUrl(url);
+                    var imageIcon = await IconToImageSourceAsync(icon);
+                    UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
+                    urlBlocks.Add(urlBlock);
+                    WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
+                });
+                var BlockSettingUrl = new BlockSettingsUrl();
+                websites.ForEach(url => BlockSettingUrl.UrlBlock[url] = BlockType.Full);
+                await UserConfiguration.StoreBlockedWebsites(BlockSettingUrl);
+                
+            }        
         }
 
         private List<string> GetTopWebsites(string category)

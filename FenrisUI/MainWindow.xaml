@@ -137,36 +137,54 @@
                                     </Grid>
 
                                     <!-- Seven Day Cubes -->
-                                    <toolkit:WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0" HorizontalSpacing="20" VerticalSpacing="20" Padding="20" x:Name="DayWrapPanel">
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+                                    <Grid Grid.Row="1" HorizontalAlignment="Center" Margin="0,20,0,0" x:Name="DayWrapPanel">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Mon" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Monday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="MondayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="MondayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Tue" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Tuesday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="TuesdayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="TuesdayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Wed" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Wednesday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="WednesdayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="WednesdayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Thu" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Thursday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="ThursdayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="ThursdayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Fri" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Friday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="FridayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="FridayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
+
+                                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Vertical" Spacing="5" Margin="10">
                                             <Button Content="Sat" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Saturday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="SaturdayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+                                            <StackPanel x:Name="SaturdayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Vertical" Spacing="5">
-                                            <Button Content="Sun" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Sunday" Foreground="#0a0a0a" Background="#bbdcda"  CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
-                                            <StackPanel x:Name="SundayTimePickers" Orientation="Vertical" Spacing="10" Visibility="Collapsed"/>
+
+                                        <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Vertical" Spacing="5" Margin="10">
+                                            <Button Content="Sun" Width="270" Height="60" FontSize="24" FontWeight="Medium" Click="DayButton_Click" Tag="Sunday" Foreground="#0a0a0a" Background="#bbdcda" CornerRadius="15" Opacity="0.8" FontFamily="Verdana"/>
+                                            <StackPanel x:Name="SundayTimePickers" Orientation="Vertical" Spacing="0" Visibility="Collapsed"/>
                                         </StackPanel>
-                                    </toolkit:WrapPanel>
+                                    </Grid>
+
                                 </Grid>
                             </Border>
                         </StackPanel>
@@ -217,7 +235,7 @@
                                     MinHeight="100">
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="localUIModels:WebsiteCategory">
-                                            <Button HorizontalAlignment="Center" Padding="8" MinWidth="130" Margin="5" FontFamily="Verdana">
+                                            <Button HorizontalAlignment="Center" Padding="8" MinWidth="130" Margin="5" FontFamily="Verdana" Click="ApplyLabelBlock_Click" Tag="{x:Bind Label}">
                                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                                     <FontIcon Glyph="{x:Bind Icon.Glyph}" FontSize="14" />
                                                     <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" FontFamily="Verdana"/>
