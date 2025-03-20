@@ -13,7 +13,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
 {
     internal static class FirewallRuleUpdater
     {
-        public static Task RunUpdateFirewallRules(Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>> block, Dictionary<string, BlockType> urlBlock)
+        public static Task RunUpdateFirewallRules(Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>> block, Dictionary<string, BlockData> urlBlock)
         {
             DayOfWeek currentDay = DateTime.Now.DayOfWeek;
             TimeSpan currentTime = DateTime.Now.TimeOfDay;

@@ -227,9 +227,8 @@ namespace FenrisUI
                 {
                     foreach (var item in blockSettingUrl.UrlBlock)
                     {
-                        var icon = await FavIconService.GetFaviconFromUrl(item.Key);
-                        var iconImage = await IconToImageSourceAsync(icon);
-                        UrlBlock urlBlock = new UrlBlock(iconImage, item.Key, item.Value);
+                        var imageIcon = await GetIcon(item.Value.IconBase64);
+                        UrlBlock urlBlock = new UrlBlock(imageIcon, item.Key, item.Value.Type);
                         urlBlocks.Add(urlBlock);
                     }
                 }
@@ -546,33 +545,26 @@ namespace FenrisUI
             UserConfiguration.StoreBlockSettings(blockSettings);
         }
 
+        public async Task CreateUrlBlock(string url, bool bulk = false)
+        {
+            var icon = await FavIconService.GetFaviconFromUrl(url);
+            var imageIcon = await IconToImageSourceAsync(icon);
+            UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
+            urlBlocks.Add(urlBlock);
+            WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
+            if (!bulk) 
+            {
+                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full, icon));
+            }
+        }
+
         public async void ApplyBlockUrl_Click(object sender, RoutedEventArgs e)
         {
             string url = WebsiteTextBox.Text.Trim();
             if (string.IsNullOrEmpty(url))
-            WebsiteTextBox.Text = "";
+                WebsiteTextBox.Text = "";
             url = CheckAndFormatUrl(url);
-            var completedTask = UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full)).IsCompletedSuccessfully;
-            if (completedTask) 
-            { 
-                WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
-                var icon = await FavIconService.GetFaviconFromUrl(url);
-                var imageIcon = await IconToImageSourceAsync(icon);
-                UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
-                urlBlocks.Add(urlBlock);
-                
-            }
-        }
-
-        public string CheckAndFormatUrl(string url)
-        {
-            url = url.Trim().ToLower();
-
-            var parts = url.Split('.');
-            if (parts.Length < 2 || parts.Any(string.IsNullOrWhiteSpace))
-                throw new ArgumentException("Invalid URL format. A domain and top-level domain are required.", nameof(url));
-
-            return url;
+            await CreateUrlBlock(url);
         }
 
         public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
@@ -581,19 +573,41 @@ namespace FenrisUI
             {
                 var label = button.Tag.ToString();
                 var websites = GetTopWebsites(label);
-                websites.ForEach(async url =>
+                var urlBlock = new BlockSettingsUrl();
+
+                var tasks = new List<Task>();  
+
+                foreach (var website in websites)
                 {
-                    var icon = await FavIconService.GetFaviconFromUrl(url);
-                    var imageIcon = await IconToImageSourceAsync(icon);
-                    UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
-                    urlBlocks.Add(urlBlock);
-                    WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
-                });
-                var BlockSettingUrl = new BlockSettingsUrl();
-                websites.ForEach(url => BlockSettingUrl.UrlBlock[url] = BlockType.Full);
-                await UserConfiguration.StoreBlockedWebsites(BlockSettingUrl);
-                
+                    var websiteFormatted = CheckAndFormatUrl(website);
+                    tasks.Add(CreateUrlBlock(websiteFormatted, true));
+                    var icon = await FavIconService.GetFaviconFromUrl(websiteFormatted);
+                    urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full, icon));
+                }
+                await Task.WhenAll(tasks);
+                await UserConfiguration.StoreBlockedWebsites(urlBlock);
             }        
+        }
+
+        public string CheckAndFormatUrl(string url)
+        {
+            url = url.Trim().ToLower();
+
+            // Check if the URL starts with "www."
+            if (!url.StartsWith("www."))
+            {
+                // If not, add "www." to the beginning of the URL
+                url = "www." + url;
+            }
+
+            // Split to validate domain format (e.g., "example.com")
+            var parts = url.Split('.');
+            if (parts.Length < 2 || parts.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new ArgumentException("Invalid URL format. A domain and top-level domain are required.", nameof(url));
+            }
+
+            return url;
         }
 
         private List<string> GetTopWebsites(string category)
@@ -601,40 +615,40 @@ namespace FenrisUI
             return category switch
             {
                 "Social Media" => new List<string>
-        {
-            "facebook.com", "twitter.com", "instagram.com", "tiktok.com", "snapchat.com",
-            "linkedin.com", "reddit.com", "pinterest.com", "discord.com", "tumblr.com"
-        },
+                {
+                "facebook.com", "twitter.com", "instagram.com", "tiktok.com", "snapchat.com",
+                "linkedin.com", "reddit.com", "pinterest.com", "discord.com", "tumblr.com"
+                },
                 "Gambling" => new List<string>
-        {
-            "bet365.com", "pokerstars.com", "williamhill.com", "888casino.com", "betfair.com",
-            "draftkings.com", "fanduel.com", "bovada.lv", "partycasino.com", "unibet.com"
-        },
+                {
+                "bet365.com", "pokerstars.com", "williamhill.com", "888casino.com", "betfair.com",
+                "draftkings.com", "fanduel.com", "bovada.lv", "partycasino.com", "unibet.com"
+                },
                 "Streaming" => new List<string>
-        {
-            "youtube.com", "netflix.com", "hulu.com", "disneyplus.com", "amazonPrimeVideo.com",
-            "hboMax.com", "twitch.tv", "peacocktv.com", "crunchyroll.com", "paramountplus.com"
-        },
+                {
+                "youtube.com", "netflix.com", "hulu.com", "disneyplus.com", "amazonPrimeVideo.com",
+                "hboMax.com", "twitch.tv", "peacocktv.com", "crunchyroll.com", "paramountplus.com"
+                },
                 "Adult Content" => new List<string>
-        {
-            "pornhub.com", "xvideos.com", "xnxx.com", "redtube.com", "youporn.com",
-            "brazzers.com", "onlyfans.com", "fapello.com", "spankbang.com", "hclips.com"
-        },
+                {
+                "pornhub.com", "xvideos.com", "xnxx.com", "redtube.com", "youporn.com",
+                "brazzers.com", "onlyfans.com", "fapello.com", "spankbang.com", "hclips.com"
+                },
                 "News" => new List<string>
-        {
-            "cnn.com", "bbc.com", "nytimes.com", "theguardian.com", "foxnews.com",
-            "washingtonpost.com", "npr.org", "aljazeera.com", "reuters.com", "bloomberg.com"
-        },
+                {
+                "cnn.com", "bbc.com", "nytimes.com", "theguardian.com", "foxnews.com",
+                "washingtonpost.com", "npr.org", "aljazeera.com", "reuters.com", "bloomberg.com"
+                },
                 "Shopping" => new List<string>
-        {
-            "amazon.com", "ebay.com", "walmart.com", "aliexpress.com", "etsy.com",
-            "target.com", "bestbuy.com", "costco.com", "wayfair.com", "newegg.com"
-        },
+                {
+                "amazon.com", "ebay.com", "walmart.com", "aliexpress.com", "etsy.com",
+                "target.com", "bestbuy.com", "costco.com", "wayfair.com", "newegg.com"
+                },
                 "Gaming" => new List<string>
-        {
-            "steampowered.com", "epicgames.com", "playstation.com", "xbox.com", "nintendo.com",
-            "twitch.tv", "ign.com", "gamespot.com", "rockstargames.com", "riotgames.com"
-        },
+                {
+                "steampowered.com", "epicgames.com", "playstation.com", "xbox.com", "nintendo.com",
+                "twitch.tv", "ign.com", "gamespot.com", "rockstargames.com", "riotgames.com"
+                },
                 _ => new List<string>()
             };
         }
@@ -659,6 +673,17 @@ namespace FenrisUI
                 await imageSource.SetBitmapAsync(softwareBitmap);
                 return imageSource;
             }
+        }
+
+        public async Task<SoftwareBitmapSource?> GetIcon(string? iconString)
+        {
+            if (string.IsNullOrEmpty(iconString))
+                return null;
+
+            byte[] bytes = Convert.FromBase64String(iconString);
+            using MemoryStream ms = new(bytes);
+            var imageIcon = await IconToImageSourceAsync(new Icon(ms));
+            return imageIcon;
         }
     }
 }

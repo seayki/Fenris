@@ -69,9 +69,9 @@ namespace Fenris.DiscoveryServices
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
 
-            BlockSettingsUrl blockedWebsites = await LoadBlockedWebsites() ?? new BlockSettingsUrl(url, type);
+            var blockedWebsites = await LoadBlockedWebsites();
 
-            blockedWebsites.UrlBlock[url] = type;
+            blockedWebsites!.UrlBlock[url].Type = type;
             await StoreBlockedWebsites(blockedWebsites, false);
         }
 

@@ -14,7 +14,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
     {
         private readonly ILogger<ProcessWorker> _logger;
         private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>> blockSettingCache;
-        private Dictionary<string, BlockType> blockSettingUrlCache;
+        private Dictionary<string, BlockData> blockSettingUrlCache;
         private CancellationTokenSource _cts;
         private bool firstTime = true;
         private FileSystemWatcher blockSettingWatcher;
@@ -46,7 +46,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
 
         }
 
-        private void OnSettingsFileChanged<T>(object sender, FileSystemEventArgs e)
+        private async void OnSettingsFileChanged<T>(object sender, FileSystemEventArgs e)
         {
             try
             {
@@ -55,11 +55,13 @@ namespace FenrisService.BackgroundWorkers.Firewall
                 // Check for the type and load appropriate settings
                 if (typeof(T) == typeof(BlockSettings))
                 {
-                    blockSettingCache = UserConfiguration.LoadBlockSettings().Result?.Block ?? new Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>();
+                    var blockSetting = await UserConfiguration.LoadBlockSettings();
+                    blockSettingCache = blockSetting?.Block!;
                 }
                 else
                 {
-                    blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result?.UrlBlock ?? new Dictionary<string, BlockType>();
+                    var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
+                    blockSettingUrlCache = blockSettingUrl?.UrlBlock!;
                 }
 
                 // Restart the process of checking firewall rules
@@ -89,7 +91,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
                     // Trim web urls to only apply for scheduled blocks
                     foreach (var item in blockSettingUrlCache)
                     {
-                        if (item.Value != BlockType.Schedule)
+                        if (item.Value.Type != BlockType.Schedule)
                         {
                             blockSettingUrlCache.Remove(item.Key);
                         }
