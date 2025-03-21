@@ -29,10 +29,19 @@
     <Resource Language="x-generate"/>
   </Resources>
 
-  <Applications>
+
+
+	<Applications>
     <Application Id="App"
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
+		<Extensions>
+			<Extension Category="windows.backgroundTasks" EntryPoint="BackgroundTasks.MyBackgroundTask">
+				<BackgroundTasks>
+					<Task Type="general" />
+				</BackgroundTasks>
+			</Extension>
+		</Extensions>
       <uap:VisualElements
         DisplayName="FenrisUI"
         Description="FenrisUI"

@@ -31,7 +31,6 @@ namespace FenrisUI
 {
     public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
-
         public List<Process> FilteredProcesses { get; set; } = new();
         public ObservableCollection<string> Tags { get; } = new ObservableCollection<string>();
         private HashSet<string> selectedDays = new HashSet<string>();
@@ -85,7 +84,6 @@ namespace FenrisUI
         public MainWindow(IDiscoveryService discoveryService)
         {
             _discoveryService = discoveryService;
-
             // Initialize time pickers dictionary
             foreach (var day in new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" })
             {
@@ -522,7 +520,7 @@ namespace FenrisUI
                 panel.Children.Add(border);
             }
         }
-
+        
         private void ApplyBlock_Click(object sender, RoutedEventArgs e)
         {
             var processesToBlock = SelectedProcesses.ToList();
@@ -574,9 +572,7 @@ namespace FenrisUI
                 var label = button.Tag.ToString();
                 var websites = GetTopWebsites(label);
                 var urlBlock = new BlockSettingsUrl();
-
                 var tasks = new List<Task>();  
-
                 foreach (var website in websites)
                 {
                     var websiteFormatted = CheckAndFormatUrl(website);
