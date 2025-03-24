@@ -6,9 +6,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Windows.Media.Protection.PlayReady;
 
-namespace FenrisUI.Services
+namespace FenrisService.BackgroundWorkers.IconUrl
 {
     public static class FavIconService
     {

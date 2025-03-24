@@ -44,6 +44,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Fenris\Fenris.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
 
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution

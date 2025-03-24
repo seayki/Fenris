@@ -2,7 +2,6 @@
 using Fenris;
 using Fenris.DiscoveryServices;
 using FenrisUI.Models;
-using FenrisUI.Services;
 using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -545,14 +544,12 @@ namespace FenrisUI
 
         public async Task CreateUrlBlock(string url, bool bulk = false)
         {
-            var icon = await FavIconService.GetFaviconFromUrl(url);
-            var imageIcon = await IconToImageSourceAsync(icon);
-            UrlBlock urlBlock = new UrlBlock(imageIcon, url, BlockType.Full);
+            UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
             urlBlocks.Add(urlBlock);
             WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
             if (!bulk) 
             {
-                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full, icon));
+                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
             }
         }
 
@@ -577,8 +574,7 @@ namespace FenrisUI
                 {
                     var websiteFormatted = CheckAndFormatUrl(website);
                     tasks.Add(CreateUrlBlock(websiteFormatted, true));
-                    var icon = await FavIconService.GetFaviconFromUrl(websiteFormatted);
-                    urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full, icon));
+                    urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full));
                 }
                 await Task.WhenAll(tasks);
                 await UserConfiguration.StoreBlockedWebsites(urlBlock);
@@ -673,13 +669,22 @@ namespace FenrisUI
 
         public async Task<SoftwareBitmapSource?> GetIcon(string? iconString)
         {
-            if (string.IsNullOrEmpty(iconString))
+            if (string.IsNullOrEmpty(iconString) || iconString == "Empty")
                 return null;
 
-            byte[] bytes = Convert.FromBase64String(iconString);
-            using MemoryStream ms = new(bytes);
-            var imageIcon = await IconToImageSourceAsync(new Icon(ms));
-            return imageIcon;
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(iconString);
+                using MemoryStream ms = new(bytes);
+                using Icon icon = new(ms);
+
+                return await IconToImageSourceAsync(icon);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error decoding icon: {ex.Message}");
+                return null;
+            }
         }
     }
 }
