@@ -1,4 +1,5 @@
-﻿using Fenris.DiscoveryServices;
+﻿using Fenris.Models;
+using Fenris.Storage;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,19 +7,21 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 
-namespace Fenris
+namespace Fenris.FirewallService
 {
     public static class WebBlockerFirewall
     {
         public static void AddFirewallBlock(string domain, BlockType type)
         {
-            var block = UserConfiguration.LoadBlockSettings().Result!.Block;
+            var block = UserConfiguration.LoadBlockSchedule().Result!.Block;
             if (string.IsNullOrWhiteSpace(domain))
                 throw new ArgumentException("Domain cannot be empty or null.");
 
             // Resolve domain to all associated IP addresses dynamically
-            var ipAddresses = GetIpAddresses(domain);
+            var countryCode = GetCountryCodeFromIP().Result;
+            var ipAddresses = GetIpAddresses(domain, countryCode);
             if (ipAddresses == null || !ipAddresses.Any())
             {
                 Console.WriteLine($"Failed to resolve any IPs for domain: {domain}");
@@ -26,7 +29,7 @@ namespace Fenris
             }
 
             string ruleName = $"WebBlocker_{domain.Replace(".", "_")}";
-            bool isScheduled = (type == BlockType.Schedule);
+            bool isScheduled = type == BlockType.Schedule;
             if (isScheduled && (block == null || block.Count == 0))
                 throw new ArgumentException("Block schedule must be defined.");
 
@@ -36,7 +39,7 @@ namespace Fenris
 
             // Step 2: If there are more IPs, update the rule with the full list
             string ipList = string.Join("','", ipAddresses); // Format as 'ip1','ip2','ip3' for PowerShell array
-            string updateCommand = ipAddresses.Count > 1
+            var updateCommand = ipAddresses.Count > 1
                 ? $"Set-NetFirewallRule -Name '{ruleName}' -RemoteAddress @('{ipList}')"
                 : null;
 
@@ -47,6 +50,23 @@ namespace Fenris
             if (updateCommand != null)
             {
                 ExecuteFirewallCommand(updateCommand, domain);
+            }
+        }
+
+        static async Task<string> GetCountryCodeFromIP()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    string response = await client.GetStringAsync("https://ipinfo.io/json");
+                    using JsonDocument doc = JsonDocument.Parse(response);
+                    return doc.RootElement.GetProperty("country").GetString() ?? "DK";
+                }
+                catch
+                {
+                    return "DK";
+                }
             }
         }
 
@@ -82,24 +102,76 @@ namespace Fenris
             }
         }
 
-        // Helper method to dynamically resolve all IPs for a domain
-        private static List<string> GetIpAddresses(string domain)
+        // Helper method to resolve all IPs for a url and different domain endings
+        private static List<string> GetIpAddresses(string url, string countryCode)
         {
             try
             {
-                var addresses = System.Net.Dns.GetHostAddresses(domain)
-                    .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork || // IPv4
-                                a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) // IPv6
-                    .Select(a => a.ToString())
-                    .ToList();
-                Console.WriteLine($"Resolved IPs for {domain}: {string.Join(", ", addresses)}");
+                countryCode = ReturnCountryCode(countryCode);
+                List<string> combined = new List<string>()
+                {
+                    url,
+                    url.Replace(".com", ".io"),
+                    url.Replace(".com", ".net"),
+                    url.Replace(".com", ".org"),
+                    url.Replace(".com", ".co")
+                };
+
+                // Only replace .com if it exists
+                if (url.EndsWith(".com"))
+                {
+                    combined.Add(url.Replace(".com", "." + countryCode.ToLower()));
+                }
+
+                var addresses = new List<string>();
+
+                // Resolve IPs in parallel to improve performance
+                Parallel.ForEach(combined, domain =>
+                {
+                    try
+                    {
+                        var ipList = Dns.GetHostAddresses(domain)
+                            .Where(a => a.AddressFamily == AddressFamily.InterNetwork ||  // IPv4
+                                        a.AddressFamily == AddressFamily.InterNetworkV6) // IPv6
+                            .Select(a => a.ToString())
+                            .ToList();
+
+                        lock (addresses) // Prevent concurrent modifications
+                        {
+                            addresses.AddRange(ipList);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error resolving IPs for {domain}: {ex.Message}");
+                    }
+                });
+
+                Console.WriteLine($"Resolved IPs for {url}: {string.Join(", ", addresses)}");
                 return addresses;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error resolving IPs for {domain}: {ex.Message}");
+                Console.WriteLine($"Error resolving IPs for {url}: {ex.Message}");
                 return new List<string>();
             }
+        }
+
+
+        static string ReturnCountryCode(string countryCode)
+        {
+            return countryCode switch
+            {
+                "US" => ".us",
+                "UK" => ".uk",
+                "DE" => ".de",
+                "CA" => ".ca",
+                "AU" => ".au",
+                "FR" => ".fr",
+                "IN" => ".in",
+                "DK" => ".dk",
+                _ => ".dk" // Default DK
+            };
         }
 
         public static void RemoveFirewallBlock(string domain)

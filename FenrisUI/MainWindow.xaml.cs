@@ -1,6 +1,8 @@
 ﻿using ABI.Windows.ApplicationModel.Activation;
-using Fenris;
 using Fenris.DiscoveryServices;
+using Fenris.FirewallService;
+using Fenris.Models;
+using Fenris.Storage;
 using FenrisUI.Models;
 using Microsoft.UI;
 using Microsoft.UI.Text;
@@ -24,7 +26,7 @@ using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.UI;
 using Color = Windows.UI.Color;
-using Process = Fenris.Process;
+using Process = Fenris.Models.Process;
 
 namespace FenrisUI
 {
@@ -124,10 +126,11 @@ namespace FenrisUI
             try
             {
                 // Retrieve stored app and web block settings
-                var blockSetting = await UserConfiguration.LoadBlockSettings();
+                var blockSetting = await UserConfiguration.LoadBlockedApps();
                 var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
+                var blockSchedule = await UserConfiguration.LoadBlockSchedule();
                 var discoveredProcesses = await _discoveryService.DiscoverGames();
-                
+
 
                 this.Content = null;
                 this.InitializeComponent();
@@ -162,7 +165,10 @@ namespace FenrisUI
                             }
                         }
                     }
-                    foreach (var item in blockSetting.Block)
+                }
+                if (blockSchedule != null)
+                {
+                    foreach (var item in blockSchedule.Block)
                     {
                         string day = item.Key.ToString();
                         StackPanel timePickersPanel = GetTimePickersPanel(day);
@@ -252,8 +258,8 @@ namespace FenrisUI
             {
                 try
                 {
-                    BlockSettings = await UserConfiguration.LoadBlockSettings();
-                    bool isBlocked = BlockSettings?.IsBlockActive() ?? false;
+                    var blockSchedule = await UserConfiguration.LoadBlockSchedule();
+                    bool isBlocked = blockSchedule?.IsBlockActive() ?? false;
 
                     IsBlocked = isBlocked;
                     BlockStatusColor = IsBlocked ? new SolidColorBrush(Colors.Green) : new SolidColorBrush(Colors.Red);
@@ -519,10 +525,51 @@ namespace FenrisUI
                 panel.Children.Add(border);
             }
         }
-        
-        private void ApplyBlock_Click(object sender, RoutedEventArgs e)
+        public async Task CreateUrlBlock(string url, bool bulk = false)
         {
-            var processesToBlock = SelectedProcesses.ToList();
+            UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
+            urlBlocks.Add(urlBlock);
+            WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
+            if (!bulk) 
+            {
+                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
+            }
+        }
+
+        public async void ApplyBlockUrl_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsBlocked)
+            {
+                await ShowBlockMessage();
+                return;
+            }
+            string url = WebsiteTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(url))
+                WebsiteTextBox.Text = "";
+            url = CheckAndFormatUrl(url);
+            await CreateUrlBlock(url);
+        }
+
+        private async Task ShowBlockMessage()
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Action Blocked",
+                Content = "Block cant be edited while active.",
+                CloseButtonText = "OK",
+                XamlRoot = this.Content.XamlRoot,              
+            };
+            await dialog.ShowAsync();
+        }
+
+        public async void UpdateSchedule_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsBlocked)
+            {
+                await ShowBlockMessage();
+                return;
+            }
+
             var blockTimes = new Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>();
 
             foreach (var day in selectedDays)
@@ -538,32 +585,28 @@ namespace FenrisUI
                     }
                 }
             }
-            var blockSettings = new BlockSettings(processesToBlock, blockTimes);
-            UserConfiguration.StoreBlockSettings(blockSettings);
+            await UserConfiguration.StoreBlockSchedule(new BlockSchedule(blockTimes));
         }
 
-        public async Task CreateUrlBlock(string url, bool bulk = false)
+        public async void UpdateApps_Click(object sender, RoutedEventArgs e)
         {
-            UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
-            urlBlocks.Add(urlBlock);
-            WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
-            if (!bulk) 
+            if (IsBlocked)
             {
-                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
+                await ShowBlockMessage();
+                return;
             }
-        }
-
-        public async void ApplyBlockUrl_Click(object sender, RoutedEventArgs e)
-        {
-            string url = WebsiteTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(url))
-                WebsiteTextBox.Text = "";
-            url = CheckAndFormatUrl(url);
-            await CreateUrlBlock(url);
+            var processesToBlock = SelectedProcesses.ToList();
+            var blockSettings = new BlockSettings(processesToBlock);
+            await UserConfiguration.StoreBlockedApps(blockSettings);
         }
 
         public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
         {
+            if (IsBlocked)
+            {
+                await ShowBlockMessage();
+                return;
+            }
             if (sender is Button button)
             {
                 var label = button.Tag.ToString();
@@ -647,7 +690,7 @@ namespace FenrisUI
 
 
 
-        public static async Task<SoftwareBitmapSource> IconToImageSourceAsync(Icon icon)
+        public static async Task<SoftwareBitmapSource?> IconToImageSourceAsync(Icon icon)
         {
             if (icon == null) return null;
 

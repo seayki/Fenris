@@ -7,15 +7,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fenris
+namespace Fenris.Models
 {
     public class Process
     {
         public string Name { get; set; }
-        public string IconUrl { get; set; }
+        public string? IconUrl { get; set; }
         public string Executable { get; set; }
 
-        public Process(string name, string iconUrl, string executable)
+        public Process(string name, string? iconUrl, string executable)
         {
             Name = name;
             IconUrl = iconUrl;

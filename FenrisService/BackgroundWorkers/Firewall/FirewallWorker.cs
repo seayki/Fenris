@@ -1,5 +1,5 @@
-﻿using Fenris;
-using Fenris.DiscoveryServices;
+﻿using Fenris.Models;
+using Fenris.Storage;
 using FenrisService.BackgroundWorkers.Process;
 using Microsoft.Extensions.Options;
 using System;
@@ -13,8 +13,8 @@ namespace FenrisService.BackgroundWorkers.Firewall
     internal class FirewallWorker : BackgroundService
     {
         private readonly ILogger<ProcessWorker> _logger;
-        private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>> blockSettingCache;
-        private Dictionary<string, BlockData> blockSettingUrlCache;
+        private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>? blockSettingCache;
+        private Dictionary<string, BlockData>? blockSettingUrlCache;
         private CancellationTokenSource _cts;
         private bool firstTime = true;
         private FileSystemWatcher blockSettingWatcher;
@@ -25,8 +25,8 @@ namespace FenrisService.BackgroundWorkers.Firewall
             _cts = new CancellationTokenSource();
 
             // Load the block settings from the configuration
-            blockSettingCache = UserConfiguration.LoadBlockSettings().Result.Block;
-            blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result.UrlBlock;
+            blockSettingCache = UserConfiguration.LoadBlockSchedule().Result!.Block;
+            blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result!.UrlBlock;
             
 
             // Watch for changes in LocalApplicationData
@@ -55,7 +55,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
                 // Check for the type and load appropriate settings
                 if (typeof(T) == typeof(BlockSettings))
                 {
-                    var blockSetting = await UserConfiguration.LoadBlockSettings();
+                    var blockSetting = await UserConfiguration.LoadBlockSchedule();
                     blockSettingCache = blockSetting?.Block!;
                 }
                 else

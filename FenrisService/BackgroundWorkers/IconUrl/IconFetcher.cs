@@ -1,4 +1,4 @@
-﻿using Fenris.DiscoveryServices;
+﻿using Fenris.Storage;
 using System;
 using System.Collections.Generic;
 using System.Drawing;

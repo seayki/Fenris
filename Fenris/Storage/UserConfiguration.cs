@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fenris.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Fenris.DiscoveryServices
+namespace Fenris.Storage
 {
     public static class UserConfiguration 
     {
@@ -86,31 +87,55 @@ namespace Fenris.DiscoveryServices
             await StoreBlockedWebsites(blockedWebsites, false);
         }
 
-        public static async Task<BlockSettings?> LoadBlockSettings()
+
+        public static async Task<BlockSettings?> LoadBlockedApps()
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSettings.json");
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
             if (File.Exists(filePath))
             {
                 string json = File.ReadAllText(filePath);
+                return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
+            }
+            return null;
+        }
+        public static Task StoreBlockedApps(BlockSettings settings)
+        {
+            // Save to JSON file
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
+            string json = JsonSerializer.Serialize(settings);
+            File.WriteAllText(filePath, json);
+            return Task.CompletedTask;
+        }
+
+
+
+        public static async Task<BlockSchedule?> LoadBlockSchedule()
+        {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
+            if (File.Exists(filePath))
+            {
+                string json = await File.ReadAllTextAsync(filePath); // Added async for consistency
                 var options = new JsonSerializerOptions
                 {
                     Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
                 };
-                return JsonSerializer.Deserialize<BlockSettings>(json, options) ?? new BlockSettings();
+                return JsonSerializer.Deserialize<BlockSchedule>(json, options) ?? new BlockSchedule();
             }
             return null;
         }
-        public static Task StoreBlockSettings(BlockSettings settings)
+
+        public static Task StoreBlockSchedule(BlockSchedule settings)
         {
             // Save to JSON file
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSettings.json");
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
                 Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
             };
-
             string json = JsonSerializer.Serialize(settings, options);
             File.WriteAllText(filePath, json);
             return Task.CompletedTask;

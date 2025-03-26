@@ -1,5 +1,5 @@
-﻿using Fenris;
-using Fenris.DiscoveryServices;
+﻿using Fenris.DiscoveryServices;
+using Fenris.Models;
 using FenrisService;
 using Microsoft.Extensions.Logging;
 using System;

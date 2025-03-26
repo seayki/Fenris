@@ -1,5 +1,6 @@
-﻿using Fenris;
-using Fenris.DiscoveryServices;
+﻿using Fenris.Models;
+using Fenris.Storage;
+using Markdig.Syntax;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,12 +19,13 @@ namespace FenrisService.BackgroundWorkers.Process
     {
         public static async Task RunTerminateProcess()
         {
-            BlockSettings settings = await UserConfiguration.LoadBlockSettings();
-            if (settings == null) return;
+            var blockedApps = await UserConfiguration.LoadBlockedApps();
+            var blockSchedule = await UserConfiguration.LoadBlockSchedule();
+            if (blockedApps == null || blockSchedule == null) return;
 
-            foreach (var process in settings.BlockedProcesses)
+            if (blockSchedule.IsBlockActive())
             {
-                if (settings.IsBlockActive(process))
+                foreach (var process in blockedApps.BlockedProcesses)
                 {
                     try
                     {
@@ -33,7 +35,7 @@ namespace FenrisService.BackgroundWorkers.Process
                             foreach (var proc in processesToTerminate)
                             {
                                 proc.Kill();
-                                Console.WriteLine($"Terminated process: {proc.ProcessName}"); // Consider ILogger here
+                                Console.WriteLine($"Terminated process: {proc.ProcessName}");
                             }
                         }
                     }

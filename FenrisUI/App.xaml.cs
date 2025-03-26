@@ -41,7 +41,6 @@ namespace FenrisUI
         {
             this.InitializeComponent();
             _serviceProvider = ConfigureServices();    
-            RegisterBackgroundTask().Wait();
         }
 
         /// <summary>
@@ -65,31 +64,6 @@ namespace FenrisUI
             // Register MainWindow with DI
             services.AddTransient<MainWindow>();
             return services.BuildServiceProvider();
-        }
-
-        private async Task RegisterBackgroundTask()
-        {
-            // Request access to run background tasks
-            var access = await BackgroundExecutionManager.RequestAccessAsync();
-            if (access == BackgroundAccessStatus.DeniedByUser || access == BackgroundAccessStatus.DeniedBySystemPolicy)
-            {
-                return;
-            }
-
-            // Register the task
-            string taskName = "TaskExecuter";
-            if (BackgroundTaskRegistration.AllTasks.All(t => t.Value.Name != taskName))
-            {
-                var builder = new BackgroundTaskBuilder
-                {
-                    Name = taskName,
-                    TaskEntryPoint = "FenrisBackgroundTasks.TaskExecuter" // Namespace.ClassName
-                };
-
-                // Use a time trigger (e.g., every 15 minutes) or a custom trigger
-                builder.SetTrigger(new TimeTrigger(15, false)); // Adjust as needed
-                builder.Register();
-            }
         }
     }
 }

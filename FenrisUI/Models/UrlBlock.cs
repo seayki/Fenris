@@ -1,4 +1,4 @@
-﻿using Fenris;
+﻿using Fenris.Models;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;

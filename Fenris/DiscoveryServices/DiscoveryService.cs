@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using Fenris.Models;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
@@ -27,11 +28,6 @@ namespace Fenris.DiscoveryServices
                 processes.AddRange(applicationProcesses);
             }
             return processes;
-        }
-
-        public async Task<List<Process>> DiscoverSocials()
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 
-namespace Fenris
+namespace Fenris.Models
 {
     public class BlockSettingsUrl
     {
@@ -33,5 +33,12 @@ namespace Fenris
         public BlockData()
         {
         }
+    }
+
+    public enum BlockType
+    {
+        Full,
+        Schedule,
+        None
     }
 }

@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.IO;
+using Fenris.Models;
+using System.Management.Automation;
 
 namespace Fenris.DiscoveryServices
 {
@@ -79,24 +81,25 @@ namespace Fenris.DiscoveryServices
 
         private string? GetIconUrl(string exePath)
         {
+            if (!File.Exists(exePath) || !OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+            {
+                return null;
+            }
             try
             {
-                // Check if the file exists
-                if (!File.Exists(exePath))
+                // Extract the icon from the executable
+                using (var icon = Icon.ExtractAssociatedIcon(exePath))
                 {
-                    return null!;
-                }
-                   
-
-                // Use Icon.ExtractAssociatedIcon to get the icon from the executable
-                var icon = Icon.ExtractAssociatedIcon(exePath);
-
-                // Convert the icon to a base64 string to return it as an image
-                using (var ms = new MemoryStream())
-                {
-                    icon.Save(ms);
-                    var imageBytes = ms.ToArray();
-                    return Convert.ToBase64String(imageBytes); // Return the image as a Base64-encoded string
+                    if (icon == null)
+                    {
+                        return null;
+                    }
+                    using (var ms = new MemoryStream())
+                    {
+                        icon.Save(ms);
+                        var imageBytes = ms.ToArray();
+                        return Convert.ToBase64String(imageBytes);
+                    }
                 }
             }
             catch (Exception ex)
