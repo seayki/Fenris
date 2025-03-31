@@ -37,6 +37,11 @@ namespace Fenris.DiscoveryServices
             @"C:\Program Files (x86)",
             @"C:\Riot Games",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+            @"C:\Games\World_of_Tanks",
+            @"C:\Games\World_of_Warships",
+>>>>>>> Stashed changes
 =======
             @"C:\Games\World_of_Tanks",
             @"C:\Games\World_of_Warships",
@@ -69,7 +74,11 @@ namespace Fenris.DiscoveryServices
                 {
                     var processName = Path.GetFileNameWithoutExtension(exe);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     foundProcesses.Add(new Process(processName, IconService.GetHighQualityIcon(exe), exe));
+=======
+                    foundProcesses.Add(new Process(processName, GetHighQualityIcon(exe), exe));
+>>>>>>> Stashed changes
 =======
                     foundProcesses.Add(new Process(processName, GetHighQualityIcon(exe), exe));
 >>>>>>> Stashed changes
@@ -91,14 +100,20 @@ namespace Fenris.DiscoveryServices
             {
                 "setup", "install", "redist", "prereq", "crashpad", "uninstall", "vc_redist",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 "update", "anticheat", "sentry", "pgomgr", "mspdbsrv", "link", "sguard", "cefsharp",
                 "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", "dotnet", 
                 "realtek", "adobe", "oracle", "fenris", "overwolf", "nv", "error", "crash",
 =======
+=======
+>>>>>>> Stashed changes
                 "update", "anticheat", "sentry", "pgomgr", "mspdbsrv", "sguard", "cefsharp",
                 "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", 
                 "dotnet", "realtek", "adobe", "oracle", "fenris", "overwolf", "blizzard", 
                 "crash", "nv", "helper", "version", "launcher", "updater", "patch", "patcher", "repair"
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             };
 
@@ -152,6 +167,9 @@ namespace Fenris.DiscoveryServices
             IntPtr hImgLarge = SHGetFileInfo(filePath, 0, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_ICON | SHGFI_LARGEICON);
             return hImgLarge != IntPtr.Zero ? Icon.FromHandle(shinfo.hIcon) : null;
         }
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     }
 }
