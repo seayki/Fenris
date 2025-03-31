@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Color = Windows.UI.Color;
@@ -100,22 +101,11 @@ namespace FenrisUI
                 Labels.Add(item);
             }
 
-
-            // Show loading indicator initially
-            this.Content = new ProgressRing
-            {
-                IsActive = true,
-                Width = 50,
-                Height = 50,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            // Start loading data asynchronously
-            _ = LoadDataAndInitializeAsync();
+            this.InitializeComponent();
+            _ = LoadDataAsync();
         }
 
-        private async Task LoadDataAndInitializeAsync()
+        private async Task LoadDataAsync()
         {
             try
             {
@@ -124,11 +114,6 @@ namespace FenrisUI
                 var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
                 var blockSchedule = await UserConfiguration.LoadBlockSchedule();
                 var discoveredProcesses = await _discoveryService.DiscoverGames();
-
-
-                this.Content = null;
-                this.InitializeComponent();
-                await Task.Delay(1000); // Wait for UI to initialize
 
                 // Update UI to reflect a users block setting if one exists.
                 if (discoveredProcesses != null)
@@ -141,11 +126,14 @@ namespace FenrisUI
                 }
                 if (blockSetting != null)
                 {
+          
                     foreach (var process in blockSetting.BlockedProcesses)
                     {
                         int index = Processes.IndexOf(Processes.Where(a => a.Name == process.Name).First());
                         if (index >= 0)
                         {
+                            ProcessList.ScrollIntoView(Processes[index]);
+                            await Task.Delay(10);
                             var listViewItem = ProcessList.ContainerFromIndex(index) as ListViewItem;
                             if (listViewItem != null)
                             {
@@ -155,7 +143,7 @@ namespace FenrisUI
                                     stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 202, 233, 240));
                                     listViewItem.UpdateLayout();
                                     SelectedProcesses.Add(process);
-                                }
+                                } 
                             }
                         }
                     }
@@ -531,6 +519,12 @@ namespace FenrisUI
             }
         }
 
+        private void ShowErrorMessage(string message)
+        {
+            ErrorInfoBar.Message = message;
+            ErrorInfoBar.IsOpen = true;
+        }
+
         public async void ApplyBlockUrl_Click(object sender, RoutedEventArgs e)
         {
             if (IsBlocked)
@@ -538,11 +532,31 @@ namespace FenrisUI
                 await ShowBlockMessage();
                 return;
             }
-            string url = WebsiteTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(url))
+            string url = WebsiteTextBox.Text.Trim().ToLower();
+            if (DoesUrlAlreadyExist(url))
+            {
                 WebsiteTextBox.Text = "";
+                ShowErrorMessage("This URL is already blocked.");
+                return;
+            }
+            if (string.IsNullOrEmpty(url))
+            {
+                WebsiteTextBox.Text = "";
+            }
             url = CheckAndFormatUrl(url);
             await CreateUrlBlock(url);
+        }
+
+        private bool DoesUrlAlreadyExist(string url)
+        {
+            foreach (var item in urlBlocks)
+            {
+                if (item.Url.Contains(url))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private async Task ShowBlockMessage()
@@ -557,32 +571,65 @@ namespace FenrisUI
             await dialog.ShowAsync();
         }
 
+        private async Task<bool> ShowConfirmationDialog(string message)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Warning",
+                Content = message,
+                PrimaryButtonText = "Proceed",
+                CloseButtonText = "Cancel",
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary;
+        }
+
         public async void UpdateSchedule_Click(object sender, RoutedEventArgs e)
         {
-            if (IsBlocked)
-            {
-                await ShowBlockMessage();
-                return;
-            }
-
+            //if (IsBlocked)
+            //{
+            //    await ShowBlockMessage();
+            //    return;
+            //}
             var blockTimes = new Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>();
+            var now = DateTime.Now;
+            var currentDay = now.DayOfWeek;
+            var currentTime = now.TimeOfDay;
+            bool affectsCurrentTime = false;
 
             foreach (var day in selectedDays)
             {
                 if (dayTimePickers.ContainsKey(day))
                 {
-                    blockTimes[Enum.Parse<DayOfWeek>(day)] = new List<(TimeSpan BlockStart, TimeSpan BlockEnd)>();
+                    var dayEnum = Enum.Parse<DayOfWeek>(day);
+                    blockTimes[dayEnum] = new List<(TimeSpan BlockStart, TimeSpan BlockEnd)>();
+
                     for (int i = 0; i < dayTimePickers[day].Count; i += 2)
                     {
                         var fromTime = dayTimePickers[day][i].Time;
                         var toTime = dayTimePickers[day][i + 1].Time;
-                        blockTimes[Enum.Parse<DayOfWeek>(day)].Add((fromTime, toTime));
+
+                        if (dayEnum == currentDay && fromTime <= currentTime && currentTime <= toTime)
+                        {
+                            affectsCurrentTime = true;
+                        }
+
+                        blockTimes[dayEnum].Add((fromTime, toTime));
                     }
+                }
+            }
+            if (affectsCurrentTime)
+            {
+                bool userConfirmed = await ShowConfirmationDialog("The new block schedule includes the current time. You won't be able to modify any of the blocks during active periods. Do you want to proceed?");
+                if (!userConfirmed)
+                {
+                    return; // Stop execution if user cancels
                 }
             }
             await UserConfiguration.StoreBlockSchedule(new BlockSchedule(blockTimes));
         }
-
         public async void UpdateApps_Click(object sender, RoutedEventArgs e)
         {
             if (IsBlocked)
@@ -607,12 +654,17 @@ namespace FenrisUI
                 var label = button.Tag.ToString();
                 var websites = GetTopWebsites(label);
                 var urlBlock = new BlockSettingsUrl();
-                var tasks = new List<Task>();  
+                var tasks = new List<Task>();
                 foreach (var website in websites)
                 {
                     var websiteFormatted = CheckAndFormatUrl(website);
-                    tasks.Add(CreateUrlBlock(websiteFormatted, true));
-                    urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full));
+
+                    // Check if the URL already exists in urlBlocks before adding
+                    if (!urlBlocks.Any(b => b.Url.Equals(websiteFormatted, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        tasks.Add(CreateUrlBlock(websiteFormatted, true));
+                        urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full));
+                    }
                 }
                 await Task.WhenAll(tasks);
                 await UserConfiguration.StoreBlockedWebsites(urlBlock);
@@ -621,8 +673,6 @@ namespace FenrisUI
 
         public string CheckAndFormatUrl(string url)
         {
-            url = url.Trim().ToLower();
-
             // Check if the URL starts with "www."
             if (!url.StartsWith("www."))
             {

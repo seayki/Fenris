@@ -11,6 +11,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Xml;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
 
 namespace FenrisService.BackgroundWorkers.Process
 {
@@ -29,13 +32,14 @@ namespace FenrisService.BackgroundWorkers.Process
                 {
                     try
                     {
-                        var processesToTerminate = System.Diagnostics.Process.GetProcessesByName(process.Name);
+                        var processesToTerminate = System.Diagnostics.Process.GetProcessesByName(process.Executable);
+                        var processesList = System.Diagnostics.Process.GetProcesses();
                         if (processesToTerminate.Length > 0)
                         {
                             foreach (var proc in processesToTerminate)
                             {
                                 proc.Kill();
-                                Console.WriteLine($"Terminated process: {proc.ProcessName}");
+                                Console.WriteLine("Process: {0} terminated", proc);
                             }
                         }
                     }

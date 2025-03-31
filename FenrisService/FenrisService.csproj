@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Uno.UI" Version="5.6.91" />
   </ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Fenris\Fenris.csproj" />

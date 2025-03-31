@@ -11,7 +11,6 @@
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d"
     Title="FenrisUI">
-    
     <ScrollViewer x:Name="MainScrollViewer" 
                   VerticalScrollBarVisibility="Auto" 
                   HorizontalScrollBarVisibility="Disabled" 
@@ -29,7 +28,7 @@
                 <Border Height="1" Background="#E0E0E0" Margin="10,5"/>
             </StackPanel>
             <Pivot Margin="40, 20, 40, 0" Padding="10" CornerRadius="15">
-                <PivotItem Header="Apps" Margin="0,30,0,0" Background="#ffffff" FontFamily="Verdana" Padding="30">
+                <PivotItem Header="Apps" Background="#ffffff" FontFamily="Verdana" Padding="20" Margin="0, 30, 0, 0">
                     <Grid>
                         <!-- Define two columns -->
                         <Grid.ColumnDefinitions>
@@ -53,12 +52,18 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Tag Input and List Section (Left Side) -->
-                                <Border Grid.Column="0" 
+                                <StackPanel Orientation="Horizontal" Grid.Column="0" Spacing="10">
+                                    <TextBlock Text="Select apps to block." FontSize="22" FontWeight="Medium" FontFamily="Verdana" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="(during scheduled time)" FontSize="14" FontWeight="Medium" FontFamily="Verdana" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0, 0, 10, 0"/>
+                                    <!-- Tag Input and List Section (Left Side) -->
+                                
+                                <Border 
                                     Background="#fcfcfc" 
                                     CornerRadius="20" 
                                     Padding="10" 
+                                    VerticalAlignment="Center"
                                     BorderThickness="0">
+                                    
                                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                         <TextBox x:Name="TagInput" Width="200" PlaceholderText="Add filter" KeyDown="TagInput_KeyDown" FontFamily="Verdana" CornerRadius="15"/>
                                         <Button Content="Add" Click="AddTag_Click" FontFamily="Verdana" CornerRadius="15"/>
@@ -80,6 +85,7 @@
                                         </ItemsControl>
                                     </StackPanel>
                                 </Border>
+                                </StackPanel>
 
                                 <!-- Save Changes Button (Right Side) -->
                                 <Button Grid.Column="1" Margin="0,10,20,0" Height="40" Click="UpdateApps_Click" Foreground="#0a0a0a" CornerRadius="20" Background="#5566FF" FontFamily="Verdana" HorizontalAlignment="Right">
@@ -119,7 +125,7 @@
                     </Grid>
                 </PivotItem>
                 <PivotItem Header="Websites" FontFamily="Verdana">
-                    <Border CornerRadius="25" Background="#ffffff">
+                    <Border CornerRadius="25" Background="#ffffff" ScrollViewer.VerticalScrollMode="Auto">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -152,6 +158,12 @@
                             Padding="10,5"
                             Background="#3b62de"
                             Click="ApplyBlockUrl_Click" FontFamily="Verdana"/>
+                                    <InfoBar x:Name="ErrorInfoBar"
+                                    Title="Duplicate URL"
+                                    Message="This URL is already blocked."
+                                    Severity="Warning"
+                                    IsOpen="False"
+                                    Margin="0,10,0,0"/>
                                 </Grid>
 
                                 <GridView x:Name="BasicGridView"
@@ -175,6 +187,7 @@
 
                                 <StackPanel HorizontalAlignment="Center" Spacing="20">
                                     <TextBlock Text="Blocked Websites." FontSize="22" FontFamily="Verdana" FontWeight="Medium"  HorizontalAlignment="Center"/>
+                                    <TextBlock Text="(Change between following schedule or permanent block)." FontSize="12" FontFamily="Verdana" FontWeight="Medium" HorizontalAlignment="Center"/>
                                     <ListView ItemsSource="{x:Bind urlBlocks}">
                                         <ListView.ItemTemplate>
                                             <DataTemplate x:DataType="UIModels:UrlBlock">
@@ -217,12 +230,12 @@
                         </Grid>
                     </Border>
                 </PivotItem>
-                <PivotItem Header="Schedule" FontFamily="Verdana">
+                <PivotItem Header="Schedule" Background="#ffffff" FontFamily="Verdana" Padding="20" Margin="0, 30, 0, 0">
                     <!-- Block Status -->
                     <StackPanel Orientation="Vertical" Margin="0,0,0,0"
                                 xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
                                 HorizontalAlignment="Left">
-                        <Border Padding="20" Background="White" CornerRadius="20">
+                        <Border Padding="0" Background="White" CornerRadius="20">
                             <Grid HorizontalAlignment="Center" MaxWidth="2010">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -318,8 +331,19 @@
                         </Border>
                     </StackPanel>
                 </PivotItem>
-                <PivotItem Header="AI Filtering" FontFamily="Verdana">
-                    <TextBlock Text="TBD." FontFamily="Verdana"/>
+                <PivotItem Header="About" Background="#ffffff" FontFamily="Verdana" Padding="20" Margin="0, 30, 0, 0">
+                    <StackPanel Spacing="40">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="App Rules" FontSize="22" FontFamily="Verdana" FontWeight="Medium"  HorizontalAlignment="Left"/>
+                            <TextBlock Text="It is important to know, that once a block has been set, it can only be modified while it is not active." FontSize="14" FontFamily="Verdana" HorizontalAlignment="Left"/>
+                            <TextBlock Text="Url blocks can switch between full (permant firewall block) or schedule where the firewall block is enabled during the block schedule." FontSize="14" FontFamily="Verdana"  HorizontalAlignment="Left"/>
+                            <TextBlock Text="Remember to add the correct domain for urls (not all urls are .com for example)." FontSize="14" FontFamily="Verdana" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Feedback And Suggestions" FontSize="22" FontFamily="Verdana" FontWeight="Medium"  HorizontalAlignment="Left"/>
+                            <TextBlock Text="Contact me by email: ihenkeandersen@gmail.com" FontSize="14" FontFamily="Verdana" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </StackPanel>
                 </PivotItem>
             </Pivot>
         </StackPanel>

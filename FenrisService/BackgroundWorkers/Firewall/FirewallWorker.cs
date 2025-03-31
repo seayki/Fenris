@@ -31,11 +31,11 @@ namespace FenrisService.BackgroundWorkers.Firewall
 
             // Watch for changes in LocalApplicationData
             string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris");
-            blockSettingWatcher = new FileSystemWatcher(settingsPath, "blockSettings.json")
+            blockSettingWatcher = new FileSystemWatcher(settingsPath, "blockSchedule.json")
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
             };
-            blockSettingWatcher.Changed += OnSettingsFileChanged<BlockSettings>;
+            blockSettingWatcher.Changed += OnSettingsFileChanged<BlockSchedule>;
             blockSettingWatcher.EnableRaisingEvents = true;
             blockSettingUrlWatcher = new FileSystemWatcher(settingsPath, "blockedWebsites.json")
             {
@@ -51,9 +51,9 @@ namespace FenrisService.BackgroundWorkers.Firewall
             try
             {
                 _logger.LogInformation("Detected changes in {file}, reloading...", e.Name);
-
+                firstTime = true;
                 // Check for the type and load appropriate settings
-                if (typeof(T) == typeof(BlockSettings))
+                if (typeof(T) == typeof(BlockSchedule))
                 {
                     var blockSetting = await UserConfiguration.LoadBlockSchedule();
                     blockSettingCache = blockSetting?.Block!;

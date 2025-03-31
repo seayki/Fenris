@@ -13,14 +13,15 @@ namespace Fenris.FirewallService
 {
     public static class WebBlockerFirewall
     {
-        public static void AddFirewallBlock(string domain, BlockType type)
+        public static async Task AddFirewallBlock(string domain, BlockType type)
         {
-            var block = UserConfiguration.LoadBlockSchedule().Result!.Block;
+            var blockSchedule = await UserConfiguration.LoadBlockSchedule();
             if (string.IsNullOrWhiteSpace(domain))
                 throw new ArgumentException("Domain cannot be empty or null.");
-
+            if (blockSchedule == null)
+                return;
             // Resolve domain to all associated IP addresses dynamically
-            var countryCode = GetCountryCodeFromIP().Result;
+            var countryCode = await GetCountryCodeFromIP();
             var ipAddresses = GetIpAddresses(domain, countryCode);
             if (ipAddresses == null || !ipAddresses.Any())
             {
@@ -30,7 +31,7 @@ namespace Fenris.FirewallService
 
             string ruleName = $"WebBlocker_{domain.Replace(".", "_")}";
             bool isScheduled = type == BlockType.Schedule;
-            if (isScheduled && (block == null || block.Count == 0))
+            if (isScheduled && (blockSchedule.Block == null || blockSchedule.Block.Count == 0))
                 throw new ArgumentException("Block schedule must be defined.");
 
             // Step 1: Create the rule with the first IP
@@ -111,16 +112,16 @@ namespace Fenris.FirewallService
                 List<string> combined = new List<string>()
                 {
                     url,
-                    url.Replace(".com", ".io"),
-                    url.Replace(".com", ".net"),
-                    url.Replace(".com", ".org"),
-                    url.Replace(".com", ".co")
+                    //url.Replace(".com", ".io"),
+                    //url.Replace(".com", ".net"),
+                    //url.Replace(".com", ".org"),
+                    //url.Replace(".com", ".co")
                 };
 
                 // Only replace .com if it exists
                 if (url.EndsWith(".com"))
                 {
-                    combined.Add(url.Replace(".com", "." + countryCode.ToLower()));
+                    combined.Add(url.Replace(".com", countryCode));
                 }
 
                 var addresses = new List<string>();
