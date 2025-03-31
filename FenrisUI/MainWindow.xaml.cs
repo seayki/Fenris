@@ -8,9 +8,6 @@ using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -24,7 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
-using Windows.UI;
 using Color = Windows.UI.Color;
 using Process = Fenris.Models.Process;
 
@@ -36,12 +32,10 @@ namespace FenrisUI
         public ObservableCollection<string> Tags { get; } = new ObservableCollection<string>();
         private HashSet<string> selectedDays = new HashSet<string>();
         private Dictionary<string, List<TimePicker>> dayTimePickers = new Dictionary<string, List<TimePicker>>();
-        
         public ObservableCollection<WebsiteCategory> Labels { get; set; } = new ObservableCollection<WebsiteCategory>();
         public ObservableCollection<UrlBlock> urlBlocks { get; set; } = new ObservableCollection<UrlBlock>();
 
         private readonly IDiscoveryService _discoveryService;
-        private BlockSettings BlockSettings { get; set; }
 
         private ObservableCollection<Process> _processes = new();
         public ObservableCollection<Process> SelectedProcesses { get; } = new();
@@ -364,9 +358,10 @@ namespace FenrisUI
                     var stackPanel = listViewItem.ContentTemplateRoot as StackPanel;
                     if (stackPanel != null)
                     {
-                        if (SelectedProcesses.Contains(process))
+                        var existingProcess = SelectedProcesses.FirstOrDefault(a => a.Name == process.Name);
+                        if (existingProcess != null)
                         {
-                            SelectedProcesses.Remove(process);
+                            SelectedProcesses.Remove(existingProcess);
                             stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
                         }
                         else

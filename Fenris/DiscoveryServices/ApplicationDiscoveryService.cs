@@ -19,6 +19,7 @@ namespace Fenris.DiscoveryServices
             {
             @"C:\Program Files",
             @"C:\Program Files (x86)",
+            @"C:\Riot Games",
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData))
             };
 
@@ -46,7 +47,7 @@ namespace Fenris.DiscoveryServices
                 foreach (var exe in exeFiles)
                 {
                     var processName = Path.GetFileNameWithoutExtension(exe);
-                    foundProcesses.Add(new Process(processName, GetIconUrl(exe), exe));
+                    foundProcesses.Add(new Process(processName, IconService.GetHighQualityIcon(exe), exe));
                 }
             }
             catch (Exception ex)
@@ -65,7 +66,8 @@ namespace Fenris.DiscoveryServices
             {
                 "setup", "install", "redist", "prereq", "crashpad", "uninstall", "vc_redist",
                 "update", "anticheat", "sentry", "pgomgr", "mspdbsrv", "link", "sguard", "cefsharp",
-                "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", "dotnet", "realtek", "adobe", "oracle", "fenris", "overwolf"
+                "windows", "microsoft", "steam", "msbuild", "iis express", "internet explorer", "dotnet", 
+                "realtek", "adobe", "oracle", "fenris", "overwolf", "nv", "error", "crash",
             };
 
             if (ignoredKeywords.Any(keyword => lowerPath.Contains(keyword)))
@@ -77,36 +79,6 @@ namespace Fenris.DiscoveryServices
 
             //return (depth - rootDepth) <= 2;
             return true;
-        }
-
-        private string? GetIconUrl(string exePath)
-        {
-            if (!File.Exists(exePath) || !OperatingSystem.IsWindowsVersionAtLeast(6, 1))
-            {
-                return null;
-            }
-            try
-            {
-                // Extract the icon from the executable
-                using (var icon = Icon.ExtractAssociatedIcon(exePath))
-                {
-                    if (icon == null)
-                    {
-                        return null;
-                    }
-                    using (var ms = new MemoryStream())
-                    {
-                        icon.Save(ms);
-                        var imageBytes = ms.ToArray();
-                        return Convert.ToBase64String(imageBytes);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error extracting icon for {exePath}: {ex.Message}");
-                return null;
-            }
         }
     }
 }

@@ -100,17 +100,17 @@
 
                             <ListView Grid.Row="1" ItemsSource="{x:Bind Processes, Mode=OneWay}" 
                             IsItemClickEnabled="True" ItemClick="ProcessList_ItemClick" 
-                            Name="ProcessList" Width="auto">
+                            Name="ProcessList">
                                 <ListView.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="9" />
+                                        <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="9"/>
                                     </ItemsPanelTemplate>
                                 </ListView.ItemsPanel>
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="models:Process">
                                         <StackPanel Orientation="Vertical" Margin="10, 10, 10, 10" Width="150" CornerRadius="10" Padding="10" Background="#eeeeee">
-                                            <Image Source="{x:Bind IconUrl}" Width="100" Height="48" Margin="0,0,0,0"/>
-                                            <TextBlock Text="{x:Bind Name}" FontSize="14" TextAlignment="Center" Foreground="#0a0a0a" FontFamily="Robot"/>
+                                            <Image Source="{x:Bind IconUrl}" Width="100" Height="48"/>
+                                            <TextBlock Text="{x:Bind Name}" FontSize="14" TextAlignment="Center" Foreground="#0a0a0a" FontFamily="Verdana"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
