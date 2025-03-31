@@ -5,6 +5,36 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:FenrisUI">
     <Application.Resources>
+
+        <!--<Style x:Key="Primary" TargetType="Button">
+            <Setter Property="Background" Value="#3e2cdd"/>
+            --><!-- Deep Blue (Primary) --><!--
+            <Setter Property="Foreground" Value="White"/>
+            --><!-- White text for contrast --><!--
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
+
+        <Style x:Key="Secondary" TargetType="Button">
+            <Setter Property="Background" Value="#ff9800"/>
+            --><!-- Orange (Secondary) --><!--
+            <Setter Property="Foreground" Value="White"/>
+            --><!-- White text for contrast --><!--
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
+
+        <Style x:Key="PrimaryNo" TargetType="Button">
+            <Setter Property="Background" Value="#e73c17"/>
+            --><!-- Red (Danger/No action) --><!--
+            <Setter Property="Foreground" Value="White"/>
+            --><!-- White text for contrast --><!--
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>-->
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                
@@ -12,7 +42,6 @@
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
             <!-- Other app resources here -->
-     
         </ResourceDictionary>
     </Application.Resources>
 </Application>

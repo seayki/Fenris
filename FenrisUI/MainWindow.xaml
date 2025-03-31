@@ -100,10 +100,10 @@
 
                             <ListView Grid.Row="1" ItemsSource="{x:Bind Processes, Mode=OneWay}" 
                             IsItemClickEnabled="True" ItemClick="ProcessList_ItemClick" 
-                            Name="ProcessList">
+                            Name="ProcessList" Width="auto">
                                 <ListView.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="9"/>
+                                        <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="9" />
                                     </ItemsPanelTemplate>
                                 </ListView.ItemsPanel>
                                 <ListView.ItemTemplate>

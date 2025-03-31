@@ -16,7 +16,7 @@ namespace Fenris.Storage
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             if (File.Exists(filePath))
             {
-                string json = File.ReadAllText(filePath);
+                string json = await File.ReadAllTextAsync(filePath);
                 var blockedWebsites = JsonSerializer.Deserialize<BlockSettingsUrl>(json);
                 if (blockedWebsites != null)
                 {
@@ -29,7 +29,7 @@ namespace Fenris.Storage
         public static Task ClearWebsiteBlock()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true
@@ -42,7 +42,7 @@ namespace Fenris.Storage
         public static Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
             string json;
             var options = new JsonSerializerOptions
@@ -93,7 +93,7 @@ namespace Fenris.Storage
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
             if (File.Exists(filePath))
             {
-                string json = File.ReadAllText(filePath);
+                string json = await File.ReadAllTextAsync(filePath);
                 return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
             }
             return null;
@@ -102,7 +102,7 @@ namespace Fenris.Storage
         {
             // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
             string json = JsonSerializer.Serialize(settings);
             File.WriteAllText(filePath, json);
@@ -130,7 +130,7 @@ namespace Fenris.Storage
         {
             // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
