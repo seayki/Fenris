@@ -25,8 +25,6 @@ namespace Fenris.Storage
             }
             return null;
         }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 
         public static Task ClearWebsiteBlock()
         {
@@ -41,10 +39,6 @@ namespace Fenris.Storage
             return Task.CompletedTask;
         }
 
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         public static Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
@@ -108,29 +102,16 @@ namespace Fenris.Storage
         {
             // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
-            string json = JsonSerializer.Serialize(settings);
-=======
-=======
->>>>>>> Stashed changes
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true
             };
             string json = JsonSerializer.Serialize(settings, options);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             File.WriteAllText(filePath, json);
             return Task.CompletedTask;
         }
-
-
 
         public static async Task<BlockSchedule?> LoadBlockSchedule()
         {

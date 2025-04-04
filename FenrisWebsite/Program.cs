@@ -1,10 +1,16 @@
 ﻿using FenrisWebsite.Components;
+using FenrisWebsite.Services;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddMudServices();
+builder.Services.AddSingleton<UserSettings>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
 var app = builder.Build();
 

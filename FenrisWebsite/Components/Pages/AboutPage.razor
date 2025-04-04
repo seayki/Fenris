@@ -1,0 +1,119 @@
+﻿@inject NavigationManager navigation
+@inject UserSettings userSettings
+@page "/about"
+
+<MudPaper Square="true" Style="@GetBackgroundStyle()">
+    <MudContainer MaxWidth="MaxWidth.Large" Style="margin-top: 100px;">
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudText Style="text-align: center; font-weight: 300" Typo="Typo.h4">General Information</MudText>
+            </MudItem>
+            <!-- Features Section -->
+            <MudItem xs="12" md="7" Style="margin-top: 100px;">
+                <MudCard>
+                    <MudCardHeader>
+                        <MudStack Spacing="2" Row="true" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Star" />
+                            <MudText Typo="Typo.h5">Features</MudText>
+                        </MudStack>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudList T="string">
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">1. Block apps based on a customizable schedule to prevent distractions during work or study hours.</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">2. Restrict website access either within a schedule or permanently, depending on your needs.</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">3. Intuitive interface for managing blocked apps and websites efficiently.</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">4. Automatic enforcement of rules to prevent circumvention during active blocking periods.</MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudFlexBreak />
+
+            <!-- Rules Section -->
+            <MudItem xs="12" md="7">
+                <MudCard>
+                    <MudCardHeader>
+                        <MudStack Spacing="2" Row="true" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Rule" />
+                            <MudText Typo="Typo.h5">Rules</MudText>
+                        </MudStack>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudList T="string">
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">
+                                    1. Once a block is active, modifications to the blocked elements are restricted to enforce the intended goal of the app.
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">
+                                    2. Modifications can occur if outside of the block schedule and the block is inactive.
+                                </MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudFlexBreak />
+
+            <!-- Donate Section -->
+            <MudItem xs="12" md="7" Class="mb-3">
+                <MudCard>
+                    <MudCardHeader>
+                        <MudStack Spacing="2" Row="true" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite" />
+                            <MudText Typo="Typo.h5">Donate</MudText>
+                        </MudStack>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudList T="string">
+                            <MudListItem>
+                                <MudText Typo="Typo.body1">Leave a tip. Any tip is much appreciated to assist further development of the app</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudLink Href="https://paypal.me/abbie09" Target="_blank" Color="Color.Success">
+                                    Paypal.me/abbie09
+                                </MudLink>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</MudPaper>
+
+@code {
+    protected override void OnInitialized()
+    {
+        userSettings.OnDarkModeChanged += OnDarkModeChanged;
+    }
+
+    private void OnDarkModeChanged(object sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        userSettings.OnDarkModeChanged -= OnDarkModeChanged;
+    }
+
+    private string GetBackgroundStyle()
+    {
+        var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
+                                     "background-image: url('/images/FenrisAppSchedule.jpg'); background-size: contain; background-position: top; background-repeat: no-repeat;";
+        var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
+        return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
+    }
+
+}

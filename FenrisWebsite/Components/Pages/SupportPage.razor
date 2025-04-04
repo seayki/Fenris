@@ -1,0 +1,122 @@
+﻿@inject NavigationManager navigation
+@inject UserSettings userSettings
+@page "/support"
+@inject ISnackbar Snackbar
+@inject IEmailService emailService
+
+<MudPaper Square="true" Style="@GetBackgroundStyle()">
+    <MudContainer MaxWidth="MaxWidth.Large" Style="margin-top: 100px;">
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudText Style="text-align: center; font-weight: 300" Typo="Typo.h4">Support and Feedback</MudText>
+            </MudItem>
+            <!-- Create Ticket Section -->
+            <MudItem xs="12" md="7" Style="margin-top: 100px;">
+                <MudCard>
+                    <MudCardHeader>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.h5">Write a ticket</MudText>
+                        </MudItem>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="4"> 
+                            <MudItem xs="12">
+                                <MudSelect T="string"
+                                Variant="Variant.Outlined"
+                                Dense = "true"
+                                @bind-Value="emailForm.Subject"
+                                Label="Subject">     
+
+                                    @foreach (var ticketOption in ticketOptions)
+                                    {
+                                        <MudSelectItem Value="ticketOption">@ticketOption</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudFlexBreak />
+                            <MudListItem T="string">
+                                <MudTextField T="string" Label="Email" Adornment="Adornment.Start" AdornmentIcon="Icons.Material.Email" HelperText="*Optional" @bind-Value="emailForm.UserEmail"/>
+                            </MudListItem>
+                            <MudFlexBreak />
+                            <MudItem xs="12">
+                                <MudTextField T="string" Label="Email text" Variant="Variant.Filled" @bind-Value="emailForm.Message" Lines="3" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.CenterFocusWeak" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.ForwardToInbox" Color="Color.Success" OnClick="SendEmail">
+                                    Send
+                                </MudButton>
+                            </MudItem>
+
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+        </MudGrid>
+    </MudContainer>
+</MudPaper>
+
+@code {
+    private EmailForm emailForm = new EmailForm();
+    List<string> ticketOptions = new List<string>
+    {
+        "Suggestion",
+        "Bug",
+        "Help"
+    };
+
+    protected override void OnInitialized()
+    {
+        userSettings.OnDarkModeChanged += OnDarkModeChanged;
+    }
+
+    private void OnDarkModeChanged(object sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        userSettings.OnDarkModeChanged -= OnDarkModeChanged;
+    }
+
+    private string GetBackgroundStyle()
+    {
+        var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
+                                     "background-image: url('/images/FenrisAppSchedule.jpg'); background-size: contain; background-position: top; background-repeat: no-repeat;";
+        var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
+        return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
+    }
+
+    private async Task SendEmail()
+    {
+        var x = emailForm;
+        if (!emailForm.ValidateSubject())
+        {
+            Snackbar.Add("Please select a subject.", Severity.Warning);
+            return;
+        }
+        if (!emailForm.ValidateEmail())
+        {
+            Snackbar.Add("Invalid email address.", Severity.Error);
+            return;
+        }
+        if (!emailForm.ValidateMessage())
+        {
+            Snackbar.Add("Please enter a message.", Severity.Warning);
+            return;
+        }
+        try
+        {
+            await emailService.SendEmailAsync(emailForm);
+            Snackbar.Add("Email sent successfully!", Severity.Success);
+            emailForm.Message = "";
+            emailForm.Subject = "";
+            emailForm.UserEmail = "";
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to send email. Please try again later.", Severity.Error);
+        }
+    }
+}

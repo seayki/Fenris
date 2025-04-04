@@ -1,23 +1,93 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager navigation
+@inject UserSettings userSettings
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<MudThemeProvider IsDarkMode="isDarkMode" Theme="CustomDarkTheme"/>
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-        <article class="content px-4">
+<MudLayout>
+    <MudAppBar Elevation="5" Dense="true" Color="Color.Primary" Class="h2">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center">
+            <MudGrid Class="d-flex align-center">
+                <MudItem xs="2" Class="d-flex justify-center">
+                    <MudButton OnClick="MainIconClick">
+                        <img src="images/FenrisBlockIcon.png" alt="Menu" class="menu-icon" />
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="8" Class="d-flex justify-center">
+                    <MudTabs Rounded="true"
+                    AlwaysShowScrollButtons = "false"
+                    ApplyEffectsToContainer="true"
+                    ActivePanelIndexChanged="PanelChanged"
+                    ActivePanelIndex="@selectedTab"
+                    Color="Color.Primary">
+                        <MudTabPanel Text="Download" Icon="@Icons.Material.Filled.CloudDownload" Style="font-size: 13px; text-transform: none;"/>
+                        <MudTabPanel Visible="false" />
+                        <MudTabPanel Text="About" Style="font-size: 13px; text-transform: none" />
+                        <MudTabPanel Text="Support" Icon="@Icons.Material.Filled.SupportAgent" Style="font-size: 13px; text-transform: none"/>
+                    </MudTabs>
+                </MudItem>
+                <MudItem xs="2" Class="d-flex justify-center">
+                    <MudButton OnClick="ToggleNightMode">
+                        <MudIcon Icon="@(isDarkMode? Icons.Material.Filled.DarkMode :  Icons.Material.Filled.WbSunny)" Color="@(isDarkMode? Color.Success: Color.Warning)"></MudIcon>
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudAppBar>
+
+    <MudMainContent>
             @Body
-        </article>
-    </main>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
+@code
+{
+    public static MudTheme CustomDarkTheme = new MudTheme
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#191e22",
+            Background = "#161a1d",  
+            Surface = "#232c33",     
+            TextPrimary = "#E3E6E8",
+            TextSecondary = "rgba(255,255,255, 0.7)"
+        }
+    };
+    public bool isDarkMode = true;
+    private int selectedTab = 1; // No tab selected by default
+    private void MainIconClick()
+    {
+        selectedTab = 1;
+        navigation.NavigateTo("/");
+    }
+
+    private void ToggleNightMode()
+    {
+        isDarkMode = !isDarkMode;
+        userSettings.IsDarkMode = !userSettings.IsDarkMode;
+    }
+
+    private void PanelChanged(int index)
+    {
+        selectedTab = index; 
+        var route = index switch
+        {
+            0 => "/download",
+            1 => "/",
+            2 => "/about",
+            3 => "/support",
+            _ => "/"
+        };
+        navigation.NavigateTo(route);
+    }
+}
