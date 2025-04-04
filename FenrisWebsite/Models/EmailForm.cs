@@ -21,7 +21,6 @@ namespace FenrisWebsite.Models
             var emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
             return Regex.IsMatch(UserEmail, emailPattern, RegexOptions.IgnoreCase);
         }
-
         public bool ValidateSubject()
         {
             return !string.IsNullOrWhiteSpace(Subject);

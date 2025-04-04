@@ -4,7 +4,7 @@
     {
         private bool _isDarkMode = true;
         public string BackgroundColorDark { get; set; } = "#161a1d";
-        public string BackgroundColorLight { get; set; } = "#f8f9fa";
+        public string BackgroundColorLight { get; set; } = "#eaeaea";
 
         public string CurrentBackgroundColor => _isDarkMode ? BackgroundColorDark : BackgroundColorLight;
 

@@ -26,7 +26,6 @@
                                 Dense = "true"
                                 @bind-Value="emailForm.Subject"
                                 Label="Subject">     
-
                                     @foreach (var ticketOption in ticketOptions)
                                     {
                                         <MudSelectItem Value="ticketOption">@ticketOption</MudSelectItem>
@@ -46,7 +45,6 @@
                                     Send
                                 </MudButton>
                             </MudItem>
-
                         </MudStack>
                     </MudCardContent>
                 </MudCard>
