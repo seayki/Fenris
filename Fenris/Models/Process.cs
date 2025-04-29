@@ -22,5 +22,4 @@ namespace Fenris.Models
             Executable = executable;
         }
     }
-
 }

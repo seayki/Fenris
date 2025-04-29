@@ -1,6 +1,8 @@
-﻿using Fenris.Models;
+﻿using Fenris.IconServices;
+using Fenris.Models;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -11,6 +13,30 @@ namespace Fenris.Storage
 {
     public static class UserConfiguration 
     {
+        public static async Task<string?> SaveIconToLocalFolder(Bitmap bitmap, string exePath)
+        {
+            if (bitmap == null)
+                return null;
+
+            string iconFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "Icons");
+            Directory.CreateDirectory(iconFolder);
+
+            try
+            {
+                string safeFileName = Path.GetFileNameWithoutExtension(exePath) + ".png";
+                string savePath = Path.Combine(iconFolder, safeFileName);
+
+                await Task.Run(() => bitmap.Save(savePath, System.Drawing.Imaging.ImageFormat.Png));
+
+                return savePath;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to save icon for {exePath}: {ex.Message}");
+                return null;
+            }
+        }
+
         public static async Task<BlockSettingsUrl?> LoadBlockedWebsites()
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
@@ -26,20 +52,7 @@ namespace Fenris.Storage
             return null;
         }
 
-        public static Task ClearWebsiteBlock()
-        {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
-            string json = JsonSerializer.Serialize(new BlockSettingsUrl(), options);
-            File.WriteAllText(filePath, json);
-            return Task.CompletedTask;
-        }
-
-        public static Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
+        public static async Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
         {
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
@@ -51,7 +64,7 @@ namespace Fenris.Storage
             };
             if (shouldCombine)
             {
-                var blockCombined = LoadBlockedWebsites().Result ?? new BlockSettingsUrl();
+                var blockCombined = await LoadBlockedWebsites() ?? new BlockSettingsUrl();
                 foreach (var item in block.UrlBlock)
                 {
                     blockCombined.UrlBlock.Add(item.Key, item.Value);
@@ -62,8 +75,7 @@ namespace Fenris.Storage
             {
                 json = JsonSerializer.Serialize(block, options);
             }             
-            File.WriteAllText(filePath, json);
-            return Task.CompletedTask;
+            await File.WriteAllTextAsync(filePath, json);
         }
 
         public static async Task UpdateWebsiteBlockType(string url, BlockType type)
@@ -98,9 +110,9 @@ namespace Fenris.Storage
             }
             return null;
         }
-        public static Task StoreBlockedApps(BlockSettings settings)
+
+        public static async Task StoreBlockedApps(BlockSettings settings)
         {
-            // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
 
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
@@ -109,8 +121,7 @@ namespace Fenris.Storage
                 WriteIndented = true
             };
             string json = JsonSerializer.Serialize(settings, options);
-            File.WriteAllText(filePath, json);
-            return Task.CompletedTask;
+            await File.WriteAllTextAsync(filePath, json);
         }
 
         public static async Task<BlockSchedule?> LoadBlockSchedule()
@@ -128,7 +139,7 @@ namespace Fenris.Storage
             return null;
         }
 
-        public static Task StoreBlockSchedule(BlockSchedule settings)
+        public static async Task StoreBlockSchedule(BlockSchedule settings)
         {
             // Save to JSON file
             string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
@@ -139,8 +150,7 @@ namespace Fenris.Storage
                 Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
             };
             string json = JsonSerializer.Serialize(settings, options);
-            File.WriteAllText(filePath, json);
-            return Task.CompletedTask;
+            await File.WriteAllTextAsync(filePath, json);
         }
     }
 
@@ -180,15 +190,25 @@ namespace Fenris.Storage
 
                 if (reader.TokenType == JsonTokenType.PropertyName)
                 {
-                    string propertyName = reader.GetString();
+                    string? propertyName = reader.GetString();
                     reader.Read();
                     if (propertyName == "BlockStart")
                     {
-                        start = TimeSpan.Parse(reader.GetString());
+                        string? value = reader.GetString();
+                        if (string.IsNullOrEmpty(value))
+                        {
+                            throw new JsonException("BlockStart cannot be null or empty");
+                        }
+                        start = TimeSpan.Parse(value);
                     }
                     else if (propertyName == "BlockEnd")
                     {
-                        end = TimeSpan.Parse(reader.GetString());
+                        string? value = reader.GetString();
+                        if (string.IsNullOrEmpty(value))
+                        {
+                            throw new JsonException("BlockEnd cannot be null or empty");
+                        }
+                        end = TimeSpan.Parse(value);
                     }
                 }
             }

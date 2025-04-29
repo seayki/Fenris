@@ -98,7 +98,7 @@
         userSettings.OnDarkModeChanged += OnDarkModeChanged;
     }
 
-    private void OnDarkModeChanged(object sender, EventArgs e)
+    private void OnDarkModeChanged(object? sender, EventArgs e)
     {
         InvokeAsync(StateHasChanged);
     }

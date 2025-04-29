@@ -4,25 +4,24 @@ using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
 {
-    public class DiscoveryService : IDiscoveryService
+    public class DiscoveryService
     {
-        SteamDiscoveryService steamDiscoveryService;
-        ApplicationDiscoveryService applicationDiscoveryService;
-        public DiscoveryService(SteamDiscoveryService steamDiscoveryService, ApplicationDiscoveryService applicationDiscoveryService)
+        SteamDiscoveryService steamDiscoveryService = new();
+        ApplicationDiscoveryService applicationDiscoveryService = new();
+        public DiscoveryService()
         {
-            this.steamDiscoveryService = steamDiscoveryService;
-            this.applicationDiscoveryService = applicationDiscoveryService;
+
         }
-        public async Task<List<Process>> DiscoverGames()
+        public async Task<List<Process>> DiscoverProcesses()
         {
             var processes = new List<Process>();
 
-            var steamProcesses = steamDiscoveryService.DiscoverSteamGames();
+            var steamProcesses = await steamDiscoveryService.DiscoverSteamProcesses();
             if (steamProcesses != null)
             {
                 processes.AddRange(steamProcesses);
             }
-            var applicationProcesses = applicationDiscoveryService.DiscoverNonSteamGamesAndApps();
+            var applicationProcesses = await applicationDiscoveryService.DiscoverProcesses();
             if (applicationProcesses != null)
             {
                 processes.AddRange(applicationProcesses);

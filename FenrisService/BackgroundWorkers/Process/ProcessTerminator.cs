@@ -12,8 +12,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Xml;
-using Windows.Data.Xml.Dom;
-using Windows.UI.Notifications;
 
 namespace FenrisService.BackgroundWorkers.Process
 {

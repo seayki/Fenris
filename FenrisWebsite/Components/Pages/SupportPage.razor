@@ -68,7 +68,7 @@
         userSettings.OnDarkModeChanged += OnDarkModeChanged;
     }
 
-    private void OnDarkModeChanged(object sender, EventArgs e)
+    private void OnDarkModeChanged(object? sender, EventArgs e)
     {
         InvokeAsync(StateHasChanged);
     }
@@ -112,7 +112,7 @@
             emailForm.Subject = "";
             emailForm.UserEmail = "";
         }
-        catch (Exception ex)
+        catch 
         {
             Snackbar.Add("Failed to send email. Please try again later.", Severity.Error);
         }

@@ -1,28 +1,27 @@
-﻿using ABI.Windows.ApplicationModel.Activation;
-using Fenris.DiscoveryServices;
+﻿using Fenris.DiscoveryServices;
 using Fenris.FirewallService;
 using Fenris.Models;
 using Fenris.Storage;
 using FenrisUI.Models;
+using FenrisUI.Services;
+using Microsoft.PowerShell.Commands;
 using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
-using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Security.Policy;
 using System.Threading.Tasks;
-using Windows.Graphics.Imaging;
 using Color = Windows.UI.Color;
+using IconService = FenrisUI.Services.IconService;
 using Process = Fenris.Models.Process;
 
 namespace FenrisUI
@@ -36,7 +35,7 @@ namespace FenrisUI
         public ObservableCollection<WebsiteCategory> Labels { get; set; } = new ObservableCollection<WebsiteCategory>();
         public ObservableCollection<UrlBlock> urlBlocks { get; set; } = new ObservableCollection<UrlBlock>();
 
-        private readonly IDiscoveryService _discoveryService;
+        public DiscoveryService DiscoveryService = new();
 
         private ObservableCollection<Process> _processes = new();
         public ObservableCollection<Process> SelectedProcesses { get; } = new();
@@ -49,7 +48,6 @@ namespace FenrisUI
                 OnPropertyChanged(nameof(Processes));
             }
         }
-
         private bool _isBlocked = false;
         public bool IsBlocked
         {
@@ -63,7 +61,6 @@ namespace FenrisUI
                 }
             }
         }
-
         private SolidColorBrush _blockStatusColor = new SolidColorBrush(Colors.Red);
         public SolidColorBrush BlockStatusColor
         {
@@ -75,207 +72,66 @@ namespace FenrisUI
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        public MainWindow(IDiscoveryService discoveryService)
-        {
-            _discoveryService = discoveryService;
-            // Initialize time pickers dictionary
-            foreach (var day in new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" })
-            {
-                dayTimePickers[day] = new List<TimePicker>();
-            }
-
-            // Initialize web labels with icons
-            foreach(var item in new[]
-            {
-                new WebsiteCategory("Social Media", new FontIcon { Glyph = "\uE8FA", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("Gambling", new FontIcon { Glyph = "\uE707", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("Streaming", new FontIcon { Glyph = "\uE768", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("Adult Content", new FontIcon { Glyph = "\uE7EE", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("News", new FontIcon { Glyph = "\uE789", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("Shopping", new FontIcon { Glyph = "\uE719", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
-                new WebsiteCategory("Gaming",  new FontIcon { Glyph = "\uE7FC", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") })
-            })
-            {
-                Labels.Add(item);
-            }
-
-            this.InitializeComponent();
-            _ = LoadDataAsync();
-        }
-
-        private async Task LoadDataAsync()
+        public MainWindow()
         {
             try
             {
-                // Retrieve stored app and web block settings
-                var blockSetting = await UserConfiguration.LoadBlockedApps();
-                var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
-                var blockSchedule = await UserConfiguration.LoadBlockSchedule();
-                var discoveredProcesses = await _discoveryService.DiscoverGames();
-
-                // Update UI to reflect a users block setting if one exists.
-                if (discoveredProcesses != null)
+                // Initialize time pickers dictionary
+                foreach (var day in StaticDataService.WeekDays)
                 {
-                    Processes.Clear();
-                    foreach (var process in discoveredProcesses)
-                    {
-                        Processes.Add(process);
-                    }
+                    dayTimePickers[day] = new List<TimePicker>();
                 }
-                if (blockSetting != null)
+                // Initialize web labels with icons
+                foreach (var category in StaticDataService.WebsiteCategory)
                 {
-          
-                    foreach (var process in blockSetting.BlockedProcesses)
-                    {
-                        int index = Processes.IndexOf(Processes.Where(a => a.Name == process.Name).First());
-                        if (index >= 0)
-                        {
-                            ProcessList.ScrollIntoView(Processes[index]);
-                            await Task.Delay(10);
-                            var listViewItem = ProcessList.ContainerFromIndex(index) as ListViewItem;
-                            if (listViewItem != null)
-                            {
-                                var stackPanel = listViewItem.ContentTemplateRoot as StackPanel;
-                                if (stackPanel != null)
-                                {
-                                    stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 202, 233, 240));
-                                    listViewItem.UpdateLayout();
-                                    SelectedProcesses.Add(process);
-                                } 
-                            }
-                        }
-                    }
+                    Labels.Add(category);
                 }
-                if (blockSchedule != null)
-                {
-                    foreach (var item in blockSchedule.Block)
-                    {
-                        string day = item.Key.ToString();
-                        StackPanel timePickersPanel = GetTimePickersPanel(day);
-                        if (timePickersPanel != null)
-                        {
-                            selectedDays.Add(day);
 
-                            // Find the corresponding day button
-                            Button dayButton = null;
-                            foreach (var child in DayWrapPanel.Children)
-                            {
-                                if (child is StackPanel sp && sp.Children[0] is Button btn && btn.Tag.ToString() == day)
-                                {
-                                    dayButton = btn;
-                                    break;
-                                }
-                            }
-
-                            if (dayButton != null)
-                            {
-                                dayButton.Opacity = 1;
-                            }
-
-                            timePickersPanel.Visibility = Visibility.Visible;
-                            timePickersPanel.Children.Clear();
-                            dayTimePickers[day].Clear();
-
-                            // Add time boxes for each time range
-                            foreach (var timeRange in item.Value)
-                            {
-                                AddTimeBox(day, timePickersPanel, timeRange.BlockStart, timeRange.BlockEnd);
-                            }
-
-                            var addTimeButton = new Button
-                            {
-                                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
-                                Background = new SolidColorBrush(Color.FromArgb(255, 46, 124, 203)),
-                                Content = "Add Time",
-                                Width = 100,
-                                CornerRadius = new CornerRadius(8),
-                                Padding = new Thickness(12, 6, 12, 6),
-                                Tag = day,
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                Opacity = 0.9,
-                                FontWeight = FontWeights.Bold,
-
-                            };
-                            addTimeButton.Click += AddTimeButton_Click;
-                            timePickersPanel.Children.Add(addTimeButton);
-                        }
-                    }
-                }
-                else
-                {
-                    IsBlocked = false;
-                    BlockStatusColor = new SolidColorBrush(Colors.Red);
-                }
-                if (blockSettingUrl != null)
-                {
-                    foreach (var item in blockSettingUrl.UrlBlock)
-                    {
-                        var imageIcon = await GetIcon(item.Value.IconBase64);
-                        UrlBlock urlBlock = new UrlBlock(imageIcon, item.Key, item.Value.Type);
-                        urlBlocks.Add(urlBlock);
-                    }
-                }
-                _ = UpdateBlockStatusLoop();
+                this.InitializeComponent();
+                _ = LoadDataAsync();
             }
-            catch (Exception ex)
+            catch
             {
                 this.Content = new TextBlock
                 {
-                    Text = $"Error loading data: {ex.Message}",
+                    Text = "Error loading data.",
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
             }
         }
 
+        #region General
+        private async Task LoadDataAsync()
+        {
+            var discoveredProcesses = await DiscoveryService.DiscoverProcesses();
+            var blockSetting = await UserConfiguration.LoadBlockedApps();
+            var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
+            var blockSchedule = await UserConfiguration.LoadBlockSchedule();
+         
+            LoadDiscoveredProcesses(discoveredProcesses);
+
+            if (blockSettingUrl != null)
+            {
+                await LoadBlockedUrls(blockSettingUrl);
+            }
+            if (blockSetting != null)
+            {
+                ApplyAppBlockSettings(blockSetting);
+            }
+            if (blockSchedule != null)
+            {
+                ApplyScheduleBlockSettings(blockSchedule);
+            }
+            _ = UpdateBlockStatusLoop();
+        }
+
+
         private void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        private async Task UpdateBlockStatusLoop()
-        {
-            while (true) // Runs on UI thread, stops when window closes
-            {
-                try
-                {
-                    var blockSchedule = await UserConfiguration.LoadBlockSchedule();
-                    bool isBlocked = blockSchedule?.IsBlockActive() ?? false;
-
-                    IsBlocked = isBlocked;
-                    BlockStatusColor = IsBlocked ? new SolidColorBrush(Colors.Green) : new SolidColorBrush(Colors.Red);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Update loop error: {ex.Message}");
-                }
-                await Task.Delay(5000);
-            }
-        }
-
-        private async void UpdateBlockTypeButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button toggleButton)
-            {
-                if (toggleButton.DataContext is UrlBlock urlBlock)
-                {
-                    if (urlBlock.BlockType == BlockType.Full)
-                    {
-                        urlBlock.BlockType = BlockType.Schedule;
-                        toggleButton.Content = "Schedule";
-                        toggleButton.Background = urlBlock.BackgroundColor;
-                    }
-                    else if (urlBlock.BlockType == BlockType.Schedule)
-                    {
-                        urlBlock.BlockType = BlockType.Full;
-                        toggleButton.Content = "Full";
-                        toggleButton.Background = urlBlock.BackgroundColor;
-                    }
-                    // Update firewall in json
-                    await UserConfiguration.UpdateWebsiteBlockType(urlBlock.Url, urlBlock.BlockType);
-                }
-            }
         }
 
         private void MainScrollViewer_PointerWheelChanged(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
@@ -287,29 +143,55 @@ namespace FenrisUI
                 e.Handled = true;
             }
         }
+        #endregion
+
+        #region Apps
+        private void ApplyAppBlockSettings(BlockSettings blockSetting)
+        {
+            if (blockSetting == null) return;
+
+            var sorted = Processes
+            .OrderByDescending(p => blockSetting.BlockedProcesses.Any(bp => bp.Name == p.Name))
+            .ToList();
+
+            Processes.Clear();
+            foreach (var process in sorted)
+            {
+                Processes.Add(process);
+            }
+
+            foreach (var process in blockSetting.BlockedProcesses)
+            {
+                var name = Processes.FirstOrDefault(a => a.Name == process.Name);
+                if (name == null) continue;
+                // Potentially remove process if not found but exists in blockSetting
+                var index = Processes.IndexOf(name);
+
+                ProcessList.ScrollIntoView(Processes[index]);
+
+                if (ProcessList.ContainerFromIndex(index) is ListViewItem listViewItem &&
+                    listViewItem.ContentTemplateRoot is StackPanel stackPanel)
+                {
+                    stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 192, 200, 209));
+                    stackPanel.Opacity = 0.9;
+                    listViewItem.UpdateLayout();
+                    SelectedProcesses.Add(process);
+                }
+            }
+        }
+
+        private void LoadDiscoveredProcesses(List<Process> discoveredProcesses)
+        {
+            if (discoveredProcesses == null) return;
+
+            Processes.Clear();
+            foreach (var process in discoveredProcesses)
+            {
+                Processes.Add(process);
+            }
+        }
 
         private void AddTag_Click(object sender, RoutedEventArgs e) => AddTag();
-
-        private void TagInput_KeyDown(object sender, KeyRoutedEventArgs e)
-        {
-            if (e.Key == Windows.System.VirtualKey.Enter)
-            {
-                AddTag();
-                e.Handled = true;
-            }
-        }
-
-        private async void RemoveWebBlock_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button)
-            {
-                var url = button.Tag.ToString();
-                await UserConfiguration.RemoveWebsiteBlock(url);
-                WebBlockerFirewall.RemoveFirewallBlock(url);
-                urlBlocks.Remove(urlBlocks.Where(a => a.Url == url).First());
-            }
-        }
-
         private void AddTag()
         {
             string newTag = TagInput.Text.Trim();
@@ -349,16 +231,101 @@ namespace FenrisUI
                         var existingProcess = SelectedProcesses.FirstOrDefault(a => a.Name == process.Name);
                         if (existingProcess != null)
                         {
+                            // Unselect
                             SelectedProcesses.Remove(existingProcess);
-                            stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
+                            stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 228, 229, 231));
+                            stackPanel.Opacity = 1;
                         }
                         else
                         {
+                            // Select
                             SelectedProcesses.Add(process);
-                            stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 202, 233, 240));
+                            stackPanel.Background = new SolidColorBrush(Color.FromArgb(255, 192, 200, 209));
+                            stackPanel.Opacity = 0.9;
                         }
                     }
                 }
+            }
+        }
+        public async void UpdateApps_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsBlocked)
+            {
+                await ShowBlockMessage();
+                return;
+            }
+            var processesToBlock = SelectedProcesses.ToList();
+            var blockSettings = new BlockSettings(processesToBlock);
+            await UserConfiguration.StoreBlockedApps(blockSettings);
+            await ShowActionSuccess("Save successful");
+        }
+        #endregion
+
+        #region Schedule
+        private void ApplyScheduleBlockSettings(BlockSchedule blockSchedule)
+        {
+            if (blockSchedule == null)
+            {
+                IsBlocked = false;
+                BlockStatusColor = new SolidColorBrush(Colors.Red);
+
+            }
+            foreach (var item in blockSchedule!.Block)
+            {
+                string day = item.Key.ToString();
+                StackPanel timePickersPanel = GetTimePickersPanel(day);
+                if (timePickersPanel == null) continue;
+
+                selectedDays.Add(day);
+                Button dayButton = FindDayButton(day);
+                if (dayButton != null)
+                {
+                    dayButton.Opacity = 1;
+                }
+
+                timePickersPanel.Visibility = Visibility.Visible;
+                timePickersPanel.Children.Clear();
+                dayTimePickers[day].Clear();
+
+                foreach (var timeRange in item.Value)
+                {
+                    AddTimeBox(day, timePickersPanel, timeRange.BlockStart, timeRange.BlockEnd);
+                }
+                var addTimeButton = StaticDataService.GetAddTimeButton(day);
+                addTimeButton.Click += AddTimeButton_Click;
+                timePickersPanel.Children.Add(addTimeButton);
+            }
+        }
+
+        private Button FindDayButton(string day)
+        {
+            foreach (var child in DayWrapPanel.Children)
+            {
+                if (child is StackPanel sp && sp.Children[0] is Button btn && btn.Tag?.ToString() == day)
+                {
+                    return btn;
+                }
+            }
+            throw new Exception($"Button for {day} not found.");
+        }
+
+        private async Task UpdateBlockStatusLoop()
+        {
+            while (true) // Runs on UI thread, stops when window closes
+            {
+                try
+                {
+                    var blockSchedule = await UserConfiguration.LoadBlockSchedule();
+                    bool isBlocked = blockSchedule?.IsBlockActive() ?? false;
+
+                    IsBlocked = isBlocked;
+                    BlockStatusColor = IsBlocked ? new SolidColorBrush(Colors.Green) : new SolidColorBrush(Colors.Red);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Update loop error: {ex.Message}");
+                }
+                await Task.Delay(5000);
             }
         }
 
@@ -366,7 +333,7 @@ namespace FenrisUI
         {
             if (sender is Button button)
             {
-                string day = button.Tag.ToString();
+                string day = button.Tag.ToString()!;
                 StackPanel timePickersPanel = GetTimePickersPanel(day);
 
                 if (timePickersPanel == null) return;
@@ -374,7 +341,7 @@ namespace FenrisUI
                 if (selectedDays.Contains(day))
                 {
                     selectedDays.Remove(day);
-                    button.Opacity = 0.8;
+                    button.Opacity = 0.6;
                     timePickersPanel.Visibility = Visibility.Collapsed;
                 }
                 else
@@ -388,46 +355,35 @@ namespace FenrisUI
 
                     AddTimeBox(day, timePickersPanel);
 
-                    var addTimeButton = new Button
-                    {
-                        FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
-                        Background = new SolidColorBrush(Color.FromArgb(255, 46, 124, 203)),
-                        Content = "Add Time",
-                        Width = 100,
-                        CornerRadius = new CornerRadius(8),
-                        Padding = new Thickness(12, 6, 12, 6),
-                        Tag = day,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        Opacity = 0.9,
-                        FontWeight = FontWeights.Bold,
-
-                    };
-                    addTimeButton.Click += AddTimeButton_Click;
-                    timePickersPanel.Children.Add(addTimeButton);
+                    var buttonToAdd = StaticDataService.GetAddTimeButton(day);
+                    buttonToAdd.Click += AddTimeButton_Click;
+                    timePickersPanel.Children.Add(buttonToAdd);
                 }
             }
         }
 
         private StackPanel GetTimePickersPanel(string day)
         {
-            return day switch
+            if (!Enum.TryParse<DayOfWeek>(day, out var dayEnum))
+                throw new ArgumentException($"Invalid day: {day}", nameof(day));
+
+            return dayEnum switch
             {
-                "Monday" => this.MondayTimePickers,
-                "Tuesday" => this.TuesdayTimePickers,
-                "Wednesday" => this.WednesdayTimePickers,
-                "Thursday" => this.ThursdayTimePickers,
-                "Friday" => this.FridayTimePickers,
-                "Saturday" => this.SaturdayTimePickers,
-                "Sunday" => this.SundayTimePickers,
-                _ => null
+                DayOfWeek.Monday => MondayTimePickers,
+                DayOfWeek.Tuesday => TuesdayTimePickers,
+                DayOfWeek.Wednesday => WednesdayTimePickers,
+                DayOfWeek.Thursday => ThursdayTimePickers,
+                DayOfWeek.Friday => FridayTimePickers,
+                DayOfWeek.Saturday => SaturdayTimePickers,
+                DayOfWeek.Sunday => SundayTimePickers,
+                _ => throw new ArgumentOutOfRangeException(nameof(dayEnum), dayEnum, $"Day: {dayEnum} was not found.")
             };
         }
-
         private void AddTimeButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button)
             {
-                string day = button.Tag.ToString();
+                string day = button.Tag.ToString()!;
                 StackPanel timePickersPanel = GetTimePickersPanel(day);
                 if (timePickersPanel != null)
                 {
@@ -440,7 +396,7 @@ namespace FenrisUI
         {
             var border = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(255, 236, 238, 236)),
+                Background = new SolidColorBrush(Color.FromArgb(255, 245, 246, 248)), // #F5F6F8
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 0, 0, 10),
@@ -456,9 +412,8 @@ namespace FenrisUI
             var fromTimePicker = new TimePicker
             {
                 Header = "From",
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
                 ClockIdentifier = "24HourClock",
-                Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), // White
                 SelectedTime = from.HasValue ? from.Value : new TimeSpan(8, 0, 0),
                 FontWeight = FontWeights.Bold
             };
@@ -466,21 +421,18 @@ namespace FenrisUI
             var toTimePicker = new TimePicker
             {
                 Header = "To",
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
                 ClockIdentifier = "24HourClock",
-                Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                Background = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), // White
                 SelectedTime = to.HasValue ? to.Value : new TimeSpan(15, 0, 0),
                 FontWeight = FontWeights.Bold
             };
 
             var deleteButton = new Button
             {
-                Content = "Delete",
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Dubai Light"),
-                Background = new SolidColorBrush(Color.FromArgb(255, 250, 109, 122)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
-                BorderThickness = new Thickness(1.4),
-                HorizontalAlignment = HorizontalAlignment.Right
+                Content = "Remove",
+                Background = new SolidColorBrush(Color.FromArgb(255, 185, 61, 55)),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                CornerRadius = new CornerRadius(5)
             };
 
             dayTimePickers[day].Add(fromTimePicker);
@@ -508,91 +460,13 @@ namespace FenrisUI
                 panel.Children.Add(border);
             }
         }
-        public async Task CreateUrlBlock(string url, bool bulk = false)
-        {
-            UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
-            urlBlocks.Add(urlBlock);
-            WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
-            if (!bulk) 
-            {
-                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
-            }
-        }
-
-        private void ShowErrorMessage(string message)
-        {
-            ErrorInfoBar.Message = message;
-            ErrorInfoBar.IsOpen = true;
-        }
-
-        public async void ApplyBlockUrl_Click(object sender, RoutedEventArgs e)
+        public async void UpdateSchedule_Click(object sender, RoutedEventArgs e)
         {
             if (IsBlocked)
             {
                 await ShowBlockMessage();
                 return;
             }
-            string url = WebsiteTextBox.Text.Trim().ToLower();
-            if (DoesUrlAlreadyExist(url))
-            {
-                WebsiteTextBox.Text = "";
-                ShowErrorMessage("This URL is already blocked.");
-                return;
-            }
-            if (string.IsNullOrEmpty(url))
-            {
-                WebsiteTextBox.Text = "";
-            }
-            url = CheckAndFormatUrl(url);
-            await CreateUrlBlock(url);
-        }
-
-        private bool DoesUrlAlreadyExist(string url)
-        {
-            foreach (var item in urlBlocks)
-            {
-                if (item.Url.Contains(url))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private async Task ShowBlockMessage()
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Action Blocked",
-                Content = "Block cant be edited while active.",
-                CloseButtonText = "OK",
-                XamlRoot = this.Content.XamlRoot,              
-            };
-            await dialog.ShowAsync();
-        }
-
-        private async Task<bool> ShowConfirmationDialog(string message)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Warning",
-                Content = message,
-                PrimaryButtonText = "Proceed",
-                CloseButtonText = "Cancel",
-                XamlRoot = this.Content.XamlRoot
-            };
-
-            var result = await dialog.ShowAsync();
-            return result == ContentDialogResult.Primary;
-        }
-
-        public async void UpdateSchedule_Click(object sender, RoutedEventArgs e)
-        {
-            //if (IsBlocked)
-            //{
-            //    await ShowBlockMessage();
-            //    return;
-            //}
             var blockTimes = new Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>();
             var now = DateTime.Now;
             var currentDay = now.DayOfWeek;
@@ -629,46 +503,57 @@ namespace FenrisUI
                 }
             }
             await UserConfiguration.StoreBlockSchedule(new BlockSchedule(blockTimes));
-        }
-        public async void UpdateApps_Click(object sender, RoutedEventArgs e)
-        {
-            if (IsBlocked)
-            {
-                await ShowBlockMessage();
-                return;
-            }
-            var processesToBlock = SelectedProcesses.ToList();
-            var blockSettings = new BlockSettings(processesToBlock);
-            await UserConfiguration.StoreBlockedApps(blockSettings);
+            await ShowActionSuccess("Save successful");
         }
 
-        public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
+        #endregion
+
+        #region Website Block
+        private async Task LoadBlockedUrls(BlockSettingsUrl blockSettingUrl)
         {
-            if (IsBlocked)
+            if (blockSettingUrl == null) return;
+
+            foreach (var item in blockSettingUrl.UrlBlock)
             {
-                await ShowBlockMessage();
-                return;
+                var imageIcon = await IconService.GetIcon(item.Value.IconBase64);
+                UrlBlock urlBlock = new UrlBlock(imageIcon, item.Key, item.Value.Type);
+                urlBlocks.Add(urlBlock);
             }
+        }
+
+        private async void UpdateBlockTypeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button toggleButton)
+            {
+                if (toggleButton.DataContext is UrlBlock urlBlock)
+                {
+                    if (urlBlock.BlockType == BlockType.Full)
+                    {
+                        urlBlock.BlockType = BlockType.Schedule;
+                        toggleButton.Content = "Schedule";
+                        toggleButton.Background = urlBlock.BackgroundColor;
+                    }
+                    else if (urlBlock.BlockType == BlockType.Schedule)
+                    {
+                        urlBlock.BlockType = BlockType.Full;
+                        toggleButton.Content = "Full";
+                        toggleButton.Background = urlBlock.BackgroundColor;
+                    }
+                    // Update firewall in json
+                    await UserConfiguration.UpdateWebsiteBlockType(urlBlock.Url, urlBlock.BlockType);
+                }
+            }
+        }
+
+        private async void RemoveWebBlock_Click(object sender, RoutedEventArgs e)
+        {
             if (sender is Button button)
             {
-                var label = button.Tag.ToString();
-                var websites = GetTopWebsites(label);
-                var urlBlock = new BlockSettingsUrl();
-                var tasks = new List<Task>();
-                foreach (var website in websites)
-                {
-                    var websiteFormatted = CheckAndFormatUrl(website);
-
-                    // Check if the URL already exists in urlBlocks before adding
-                    if (!urlBlocks.Any(b => b.Url.Equals(websiteFormatted, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        tasks.Add(CreateUrlBlock(websiteFormatted, true));
-                        urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full));
-                    }
-                }
-                await Task.WhenAll(tasks);
-                await UserConfiguration.StoreBlockedWebsites(urlBlock);
-            }        
+                string url = button.Tag.ToString()!;
+                await UserConfiguration.RemoveWebsiteBlock(url);
+                WebBlockerFirewall.RemoveFirewallBlock(url);
+                urlBlocks.Remove(urlBlocks.Where(a => a.Url == url).First());
+            }
         }
 
         public string CheckAndFormatUrl(string url)
@@ -690,89 +575,133 @@ namespace FenrisUI
             return url;
         }
 
-        private List<string> GetTopWebsites(string category)
+        public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
         {
-            return category switch
+            if (IsBlocked)
             {
-                "Social Media" => new List<string>
+                await ShowBlockMessage();
+                return;
+            }
+            if (sender is Button button)
+            {
+                var label = button.Tag.ToString();
+                var websites = StaticDataService.GetTopWebsites(label!);
+                var urlBlock = new BlockSettingsUrl();
+                var tasks = new List<Task>();
+                foreach (var website in websites)
                 {
-                "facebook.com", "twitter.com", "instagram.com", "tiktok.com", "snapchat.com",
-                "linkedin.com", "reddit.com", "pinterest.com", "discord.com", "tumblr.com"
-                },
-                "Gambling" => new List<string>
+                    var websiteFormatted = CheckAndFormatUrl(website);
+
+                    // Check if the URL already exists in urlBlocks before adding
+                    if (!urlBlocks.Any(b => b.Url.Equals(websiteFormatted, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        tasks.Add(CreateUrlBlock(websiteFormatted, true));
+                        urlBlock.UrlBlock.Add(websiteFormatted, new BlockData(BlockType.Full));
+                    }
+                }
+                await Task.WhenAll(tasks);
+                await UserConfiguration.StoreBlockedWebsites(urlBlock);
+            }
+        }
+
+        public async Task CreateUrlBlock(string url, bool bulk = false)
+        {
+            UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
+            urlBlocks.Add(urlBlock);
+            await WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
+            if (!bulk)
+            {
+                await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
+            }
+        }
+
+        public async void AddUrlBlock_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsBlocked)
+            {
+                await ShowBlockMessage();
+                return;
+            }
+           
+            string url = WebsiteTextBox.Text.Trim().ToLower();
+            if (DoesUrlAlreadyExist(url))
+            {
+                WebsiteTextBox.Text = "";
+                ShowErrorMessage("This URL is already blocked.");
+                return;
+            }
+            if (string.IsNullOrEmpty(url))
+            {
+                WebsiteTextBox.Text = "";
+            }
+            WebsiteTextBox.Text = "";
+            url = CheckAndFormatUrl(url);
+            await CreateUrlBlock(url);
+        }
+
+        private bool DoesUrlAlreadyExist(string url)
+        {
+            foreach (var item in urlBlocks)
+            {
+                if (item.Url.Contains(url))
                 {
-                "bet365.com", "pokerstars.com", "williamhill.com", "888casino.com", "betfair.com",
-                "draftkings.com", "fanduel.com", "bovada.lv", "partycasino.com", "unibet.com"
-                },
-                "Streaming" => new List<string>
-                {
-                "youtube.com", "netflix.com", "hulu.com", "disneyplus.com", "amazonPrimeVideo.com",
-                "hboMax.com", "twitch.tv", "peacocktv.com", "crunchyroll.com", "paramountplus.com"
-                },
-                "Adult Content" => new List<string>
-                {
-                "pornhub.com", "xvideos.com", "xnxx.com", "redtube.com", "youporn.com",
-                "brazzers.com", "onlyfans.com", "fapello.com", "spankbang.com", "hclips.com"
-                },
-                "News" => new List<string>
-                {
-                "cnn.com", "bbc.com", "nytimes.com", "theguardian.com", "foxnews.com",
-                "washingtonpost.com", "npr.org", "aljazeera.com", "reuters.com", "bloomberg.com"
-                },
-                "Shopping" => new List<string>
-                {
-                "amazon.com", "ebay.com", "walmart.com", "aliexpress.com", "etsy.com",
-                "target.com", "bestbuy.com", "costco.com", "wayfair.com", "newegg.com"
-                },
-                "Gaming" => new List<string>
-                {
-                "steampowered.com", "epicgames.com", "playstation.com", "xbox.com", "nintendo.com",
-                "twitch.tv", "ign.com", "gamespot.com", "rockstargames.com", "riotgames.com"
-                },
-                _ => new List<string>()
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region User action feedback
+        private void ShowErrorMessage(string message)
+        {
+            ErrorInfoBar.Message = message;
+            ErrorInfoBar.IsOpen = true;
+        }
+
+        private async Task ShowActionSuccess(string actionMessage)
+        {
+            // Set the text of the TextBlock
+            SuccessMessageTextBlock.Text = actionMessage;
+
+            // Make the Border that contains the TextBlock visible
+            SuccessMessageBorder.Visibility = Visibility.Visible;
+
+            // Wait for 1 second
+            await Task.Delay(1500);
+
+            // Hide the Border again
+            SuccessMessageBorder.Visibility = Visibility.Collapsed;
+        }
+
+        private async Task ShowBlockMessage()
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Action Blocked",
+                Content = "Block cant be edited while active.",
+                CloseButtonText = "OK",
+                XamlRoot = this.Content.XamlRoot,
             };
+            await dialog.ShowAsync();
         }
 
-
-
-        public static async Task<SoftwareBitmapSource?> IconToImageSourceAsync(Icon icon)
+        private async Task<bool> ShowConfirmationDialog(string message)
         {
-            if (icon == null) return null;
-
-            using (var stream = new MemoryStream())
+            var dialog = new ContentDialog
             {
-                icon.ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-                stream.Seek(0, SeekOrigin.Begin);
+                Title = "Warning",
+                Content = message,
+                PrimaryButtonText = "Proceed",
+                CloseButtonText = "Cancel",
+                XamlRoot = this.Content.XamlRoot
+            };
 
-                var decoder = await BitmapDecoder.CreateAsync(stream.AsRandomAccessStream());
-                var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
-                softwareBitmap = SoftwareBitmap.Convert(softwareBitmap,
-                                                   BitmapPixelFormat.Bgra8,
-                                                   BitmapAlphaMode.Premultiplied);
-                var imageSource = new SoftwareBitmapSource();
-                await imageSource.SetBitmapAsync(softwareBitmap);
-                return imageSource;
-            }
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary;
         }
 
-        public async Task<SoftwareBitmapSource?> GetIcon(string? iconString)
-        {
-            if (string.IsNullOrEmpty(iconString) || iconString == "Empty")
-                return null;
-
-            try
-            {
-                byte[] bytes = Convert.FromBase64String(iconString);
-                using MemoryStream ms = new(bytes);
-                using Icon icon = new(ms);
-
-                return await IconToImageSourceAsync(icon);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error decoding icon: {ex.Message}");
-                return null;
-            }
-        }
+        #endregion
     }
 }

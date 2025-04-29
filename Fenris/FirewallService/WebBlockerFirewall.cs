@@ -14,12 +14,9 @@ namespace Fenris.FirewallService
     public static class WebBlockerFirewall
     {
         public static async Task AddFirewallBlock(string domain, BlockType type)
-        {
-            var blockSchedule = await UserConfiguration.LoadBlockSchedule();
+        {    
             if (string.IsNullOrWhiteSpace(domain))
                 throw new ArgumentException("Domain cannot be empty or null.");
-            if (blockSchedule == null)
-                return;
             // Resolve domain to all associated IP addresses dynamically
             var countryCode = await GetCountryCodeFromIP();
             var ipAddresses = GetIpAddresses(domain, countryCode);
@@ -30,13 +27,10 @@ namespace Fenris.FirewallService
             }
 
             string ruleName = $"WebBlocker_{domain.Replace(".", "_")}";
-            bool isScheduled = type == BlockType.Schedule;
-            if (isScheduled && (blockSchedule.Block == null || blockSchedule.Block.Count == 0))
-                throw new ArgumentException("Block schedule must be defined.");
 
             // Step 1: Create the rule with the first IP
             string firstIp = ipAddresses[0];
-            string createCommand = $"New-NetFirewallRule -DisplayName 'FenrisBlock_{ruleName}' -Name '{ruleName}' -Direction Outbound -Action Block -RemoteAddress '{firstIp}' -Enabled {(isScheduled ? "False" : "True")}";
+            string createCommand = $"New-NetFirewallRule -DisplayName 'FenrisBlock_{ruleName}' -Name '{ruleName}' -Direction Outbound -Action Block -RemoteAddress '{firstIp}' -Enabled True";
 
             // Step 2: If there are more IPs, update the rule with the full list
             string ipList = string.Join("','", ipAddresses); // Format as 'ip1','ip2','ip3' for PowerShell array

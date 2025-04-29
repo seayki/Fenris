@@ -13,7 +13,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
     internal class FirewallWorker : BackgroundService
     {
         private readonly ILogger<ProcessWorker> _logger;
-        private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>? blockSettingCache;
+        private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>? blockScheduleCache;
         private Dictionary<string, BlockData>? blockSettingUrlCache;
         private CancellationTokenSource _cts;
         private bool firstTime = true;
@@ -25,7 +25,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
             _cts = new CancellationTokenSource();
 
             // Load the block settings from the configuration
-            blockSettingCache = UserConfiguration.LoadBlockSchedule().Result!.Block;
+            blockScheduleCache = UserConfiguration.LoadBlockSchedule().Result!.Block;
             blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result!.UrlBlock;
             
 
@@ -56,7 +56,7 @@ namespace FenrisService.BackgroundWorkers.Firewall
                 if (typeof(T) == typeof(BlockSchedule))
                 {
                     var blockSetting = await UserConfiguration.LoadBlockSchedule();
-                    blockSettingCache = blockSetting?.Block!;
+                    blockScheduleCache = blockSetting?.Block!;
                 }
                 else
                 {
@@ -77,11 +77,18 @@ namespace FenrisService.BackgroundWorkers.Firewall
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var sharedToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, _cts.Token).Token;
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var nextEventTime = GetNextEventTime(blockSettingCache);
+                    if (blockScheduleCache == null || blockSettingUrlCache == null)
+                    {
+                        _logger.LogWarning("Block settings not loaded, skipping update.");
+                        await Task.Delay(TimeSpan.FromDays(1), sharedToken);
+                        continue;
+                    }
+                    var nextEventTime = GetNextEventTime(blockScheduleCache);
                     var now = DateTimeOffset.Now;
                     var delay = nextEventTime - now;
 
@@ -99,14 +106,14 @@ namespace FenrisService.BackgroundWorkers.Firewall
 
                     if (firstTime || delay.TotalMilliseconds <= 10000)
                     {
-                        await FirewallRuleUpdater.RunUpdateFirewallRules(blockSettingCache, blockSettingUrlCache);
+                        await FirewallRuleUpdater.RunUpdateFirewallRules(blockScheduleCache, blockSettingUrlCache);
                         _logger.LogInformation("Firewall rules updated at: {time}", DateTimeOffset.Now);
                         firstTime = false;
                     }
                     else
                     {
-                        await Task.Delay(delay, CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, _cts.Token).Token);
-                        await FirewallRuleUpdater.RunUpdateFirewallRules(blockSettingCache, blockSettingUrlCache);
+                        await Task.Delay(delay, sharedToken);
+                        await FirewallRuleUpdater.RunUpdateFirewallRules(blockScheduleCache, blockSettingUrlCache);
                         _logger.LogInformation("Firewall rules updated at: {time}", DateTimeOffset.Now);
                     }
                 }

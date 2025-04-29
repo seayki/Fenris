@@ -1,6 +1,8 @@
 ﻿using Fenris;
 using Fenris.DiscoveryServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -20,6 +22,7 @@ using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.Background;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -51,16 +54,22 @@ namespace FenrisUI
         {
             _window = _serviceProvider.GetRequiredService<MainWindow>();
             _window.Activate();
+            var hWnd = WindowNative.GetWindowHandle(_window);
+            var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd));
+            appWindow.Title = ""; // Clear title
+            appWindow.SetIcon(null); // Remove icon (optional, may not fully remove)
+            appWindow.TitleBar.ExtendsContentIntoTitleBar = true; // Hide default title bar
+
+            var titleBar = appWindow.TitleBar;
+            titleBar.ButtonBackgroundColor = Colors.Transparent;
+            titleBar.ButtonPressedBackgroundColor = Colors.Transparent;
+            titleBar.ButtonForegroundColor = Colors.Black;
         }
 
         private static IServiceProvider ConfigureServices()
         {
             var services = new ServiceCollection();
 
-            // Register your services
-            services.AddSingleton<SteamDiscoveryService>();
-            services.AddSingleton<ApplicationDiscoveryService>();
-            services.AddSingleton<IDiscoveryService, DiscoveryService>();
             // Register MainWindow with DI
             services.AddTransient<MainWindow>();
             return services.BuildServiceProvider();

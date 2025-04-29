@@ -9,7 +9,7 @@
         public string CurrentBackgroundColor => _isDarkMode ? BackgroundColorDark : BackgroundColorLight;
 
 
-        public event EventHandler OnDarkModeChanged;
+        public event EventHandler? OnDarkModeChanged;
 
         public bool IsDarkMode
         {
