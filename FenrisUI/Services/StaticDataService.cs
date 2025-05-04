@@ -29,6 +29,15 @@ namespace FenrisUI.Services
              new WebsiteCategory("Shopping", new FontIcon { Glyph = "\uE719", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") }),
              new WebsiteCategory("Gaming",  new FontIcon { Glyph = "\uE7FC", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons") })
         };
+
+        public static List<string> RecognizedDomains = new List<string>
+        {
+            "com", "net", "org", "gov", "edu", "int", "mil", "co", "info", "io", "biz", "us", "ca", "de", "uk", "fr", "au", "jp", "in", "cn", "ru", "br", "za", "mx", "es", 
+            "it", "se", "nl", "pl", "ch", "kr", "fi", "no", "dk", "ie", "be", "at", "cz", "il", "gr", "hu", "ro", "sk", "bg", "lt", "lv", "ee", "si", "hr", "rs", "ua", "by", 
+            "me", "mk", "ba", "ng", "pk", "ph", "tw", "ae", "sa", "hk", "sg", "my", "th", "vn", "bd", "ke", "ng", "nz", "pe", "cl", "ar", "ve", "co", "uy", "py", "ec", "bo", 
+            "do", "gt", "sv", "hn", "ni", "cr", "pa", "jm", "tt", "bs", "bb", "lc", "gd", "kn", "vc", "dm", "tt", "ms", "sx", "mq", "gp", "re", "yt", "pf", "wf", "nc", "tv", 
+            "as", "gu", "mp", "vi", "fm", "mh", "pw", "ki", "to", "ck", "fm", "nc", "tv", "pm", "ai", "bl", "gp", "mq", "re", "yt", "pf", "wf", "nc"
+        };
         public static List<string> GetTopWebsites(string category)
         {
             return category switch

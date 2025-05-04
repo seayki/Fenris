@@ -35,8 +35,12 @@ namespace Fenris.DiscoveryServices
             {
                 processes.AddRange(result);
             }
-
-            return processes;
+            var uniqueProcesses = processes
+                .GroupBy(p => p.Name)
+                .Select(g => g.First())
+                .OrderBy(p => p.Name)
+                .ToList();
+            return uniqueProcesses;
         }
 
         // Convert to async method
@@ -52,10 +56,8 @@ namespace Fenris.DiscoveryServices
                 foreach (var exe in exeFiles)
                 {
                     var processName = Path.GetFileNameWithoutExtension(exe);
-
                     string? iconPath = await GetIconPath(exe);
-
-                    foundProcesses.Add(new Process(processName, iconPath, exe));
+                    foundProcesses.Add(new Process(processName, iconPath, processName));
                 }
             }
             catch (Exception ex)

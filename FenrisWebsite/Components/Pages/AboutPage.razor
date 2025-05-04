@@ -111,7 +111,7 @@
     private string GetBackgroundStyle()
     {
         var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
-                                     "background-image: url('/images/FenrisAppSchedule.jpg'); background-size: contain; background-position: top; background-repeat: no-repeat;";
+                                     "background-image: url('/images/Schedule.png'); background-size: contain; background-position: top; background-repeat: no-repeat;";
         var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
         return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
     }

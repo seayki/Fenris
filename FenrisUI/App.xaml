@@ -11,40 +11,63 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Define Roboto Font Family -->
-            <FontFamily x:Key="RobotoFontFamily">/Assets/Fonts/Roboto-Regular.ttf#Roboto</FontFamily>
-
+            <FontFamily x:Key="RobotoFontFamily">ms-appx:///Assets/Fonts/Roboto-Regular.ttf#Roboto</FontFamily>
+            
             <!-- Override default font for common controls -->
-            <FontFamily x:Key="ContentControlThemeFontFamily">/Assets/Fonts/Roboto-Regular.ttf#Roboto</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Roboto-Regular.ttf#Roboto</FontFamily>
+            
+            <SolidColorBrush x:Key="ModernDarkTextColor" Color="#FF2D2D2F" />
 
             <!-- Style for TextBlock -->
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
+            </Style>
+
+            <!-- Style for InfoBar -->
+            <Style TargetType="InfoBar">
+                <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
             </Style>
 
             <!-- Style for ContentDialog -->
             <Style TargetType="ContentDialog">
                 <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
             </Style>
 
             <!-- Style for TimePicker -->
             <Style TargetType="TimePicker">
                 <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
+            </Style>
+
+            <!-- Style for FontIcon -->
+            <Style TargetType="FontIcon">
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
             </Style>
 
             <!-- Style for TextBox -->
             <Style TargetType="TextBox">
                 <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
+                <Setter Property="PlaceholderForeground" Value="{StaticResource ModernDarkTextColor}" />
+            </Style>
+
+            <!-- Style for PivotHeaderItem -->
+            <Style TargetType="PivotHeaderItem">
+                <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
             </Style>
 
             <!-- Style for Button -->
             <Style TargetType="Button">
                 <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
+                <Setter Property="Foreground" Value="{StaticResource ModernDarkTextColor}" />
             </Style>
 
-            <!-- Style for Pivot (to ensure headers use Roboto) -->
-            <Style TargetType="Pivot">
-                <Setter Property="FontFamily" Value="{StaticResource RobotoFontFamily}" />
-            </Style>
+
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

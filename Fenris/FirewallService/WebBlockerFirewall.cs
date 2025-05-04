@@ -14,12 +14,12 @@ namespace Fenris.FirewallService
     public static class WebBlockerFirewall
     {
         public static async Task AddFirewallBlock(string domain, BlockType type)
-        {    
+        {
             if (string.IsNullOrWhiteSpace(domain))
                 throw new ArgumentException("Domain cannot be empty or null.");
             // Resolve domain to all associated IP addresses dynamically
             var countryCode = await GetCountryCodeFromIP();
-            var ipAddresses = GetIpAddresses(domain, countryCode);
+            var ipAddresses = await GetIpAddresses(domain, countryCode);
             if (ipAddresses == null || !ipAddresses.Any())
             {
                 Console.WriteLine($"Failed to resolve any IPs for domain: {domain}");
@@ -38,14 +38,14 @@ namespace Fenris.FirewallService
                 ? $"Set-NetFirewallRule -Name '{ruleName}' -RemoteAddress @('{ipList}')"
                 : null;
 
-            // Execute the create command
-            ExecuteFirewallCommand(createCommand, domain);
-
-            // If there are more IPs, execute the update command
-            if (updateCommand != null)
+            await Task.Run(() =>
             {
-                ExecuteFirewallCommand(updateCommand, domain);
-            }
+                ExecuteFirewallCommand(createCommand, domain);
+                if (updateCommand != null)
+                {
+                    ExecuteFirewallCommand(updateCommand, domain);
+                }
+            });
         }
 
         static async Task<string> GetCountryCodeFromIP()
@@ -98,49 +98,41 @@ namespace Fenris.FirewallService
         }
 
         // Helper method to resolve all IPs for a url and different domain endings
-        private static List<string> GetIpAddresses(string url, string countryCode)
+        private static async Task<List<string>> GetIpAddresses(string url, string countryCode)
         {
             try
             {
                 countryCode = ReturnCountryCode(countryCode);
-                List<string> combined = new List<string>()
+                List<string> combined = new()
                 {
-                    url,
-                    //url.Replace(".com", ".io"),
-                    //url.Replace(".com", ".net"),
-                    //url.Replace(".com", ".org"),
-                    //url.Replace(".com", ".co")
+                url
                 };
 
-                // Only replace .com if it exists
                 if (url.EndsWith(".com"))
                 {
                     combined.Add(url.Replace(".com", countryCode));
                 }
 
-                var addresses = new List<string>();
-
-                // Resolve IPs in parallel to improve performance
-                Parallel.ForEach(combined, domain =>
+                var ipTasks = combined.Select(async domain =>
                 {
                     try
                     {
-                        var ipList = Dns.GetHostAddresses(domain)
-                            .Where(a => a.AddressFamily == AddressFamily.InterNetwork ||  // IPv4
-                                        a.AddressFamily == AddressFamily.InterNetworkV6) // IPv6
+                        var ipList = await Dns.GetHostAddressesAsync(domain);
+                        return ipList
+                            .Where(a => a.AddressFamily == AddressFamily.InterNetwork ||
+                                        a.AddressFamily == AddressFamily.InterNetworkV6)
                             .Select(a => a.ToString())
                             .ToList();
-
-                        lock (addresses) // Prevent concurrent modifications
-                        {
-                            addresses.AddRange(ipList);
-                        }
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Error resolving IPs for {domain}: {ex.Message}");
+                        return new List<string>();
                     }
                 });
+
+                var results = await Task.WhenAll(ipTasks);
+                var addresses = results.SelectMany(list => list).ToList();
 
                 Console.WriteLine($"Resolved IPs for {url}: {string.Join(", ", addresses)}");
                 return addresses;
@@ -151,7 +143,6 @@ namespace Fenris.FirewallService
                 return new List<string>();
             }
         }
-
 
         static string ReturnCountryCode(string countryCode)
         {
@@ -169,11 +160,11 @@ namespace Fenris.FirewallService
             };
         }
 
-        public static void RemoveFirewallBlock(string domain)
+        public static async Task RemoveFirewallBlock(string domain)
         {
             string firewallRuleName = $"FenrisBlock_WebBlocker_{domain.Replace(".", "_")}";
             string firewallCommand = $"Remove-NetFirewallRule -DisplayName '{firewallRuleName}'";
-            ExecuteFirewallCommand(firewallCommand, domain);
+            await Task.Run(() => ExecuteFirewallCommand(firewallCommand, domain));
         }
     }
 }

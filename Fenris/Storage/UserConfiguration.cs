@@ -11,148 +11,260 @@ using System.Threading.Tasks;
 
 namespace Fenris.Storage
 {
-    public static class UserConfiguration 
+    public static class UserConfiguration
     {
+        private static readonly SemaphoreSlim _blockedWebsitesLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _blockedAppsLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _blockScheduleLock = new SemaphoreSlim(1, 1);
+
         public static async Task<string?> SaveIconToLocalFolder(Bitmap bitmap, string exePath)
         {
             if (bitmap == null)
                 return null;
 
-            string iconFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "Icons");
+            string iconFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "Icons");
             Directory.CreateDirectory(iconFolder);
 
-            try
-            {
-                string safeFileName = Path.GetFileNameWithoutExtension(exePath) + ".png";
-                string savePath = Path.Combine(iconFolder, safeFileName);
+            string safeFileName = Path.GetFileNameWithoutExtension(exePath) + ".png";
+            string savePath = Path.Combine(iconFolder, safeFileName);
 
-                await Task.Run(() => bitmap.Save(savePath, System.Drawing.Imaging.ImageFormat.Png));
+            await Task.Run(() => bitmap.Save(savePath, System.Drawing.Imaging.ImageFormat.Png));
 
-                return savePath;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to save icon for {exePath}: {ex.Message}");
-                return null;
-            }
+            return savePath;
         }
 
         public static async Task<BlockSettingsUrl?> LoadBlockedWebsites()
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
+            if (!await _blockedWebsitesLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked websites.");
+
+            try
+            {
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedWebsites.json");
+                if (File.Exists(filePath))
+                {
+                    string json = await File.ReadAllTextAsync(filePath);
+                    return JsonSerializer.Deserialize<BlockSettingsUrl>(json);
+                }
+                return null;
+            }
+            finally
+            {
+                _blockedWebsitesLock.Release();
+            }
+        }
+
+        private static async Task<BlockSettingsUrl?> LoadBlockedWebsitesInternalUnlocked()
+        {
+            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedWebsites.json");
             if (File.Exists(filePath))
             {
                 string json = await File.ReadAllTextAsync(filePath);
-                var blockedWebsites = JsonSerializer.Deserialize<BlockSettingsUrl>(json);
-                if (blockedWebsites != null)
-                {
-                    return blockedWebsites;
-                }
+                return JsonSerializer.Deserialize<BlockSettingsUrl>(json);
             }
             return null;
         }
 
         public static async Task StoreBlockedWebsites(BlockSettingsUrl block, bool shouldCombine = true)
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+            if (block == null || block.UrlBlock == null)
+                throw new ArgumentNullException(nameof(block), "Block or UrlBlock cannot be null.");
 
-            string json;
-            var options = new JsonSerializerOptions
+            if (!await _blockedWebsitesLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked websites.");
+
+            try
             {
-                WriteIndented = true
-            };
-            if (shouldCombine)
-            {
-                var blockCombined = await LoadBlockedWebsites() ?? new BlockSettingsUrl();
-                foreach (var item in block.UrlBlock)
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedWebsites.json");
+                string folderPath = Path.GetDirectoryName(filePath)!;
+                Directory.CreateDirectory(folderPath);
+
+                string json;
+                var options = new JsonSerializerOptions { WriteIndented = true };
+
+                if (shouldCombine)
                 {
-                    blockCombined.UrlBlock.Add(item.Key, item.Value);
+                    var blockCombined = await LoadBlockedWebsitesInternalUnlocked() ?? new BlockSettingsUrl();
+                    foreach (var item in block.UrlBlock)
+                    {
+                        if (string.IsNullOrEmpty(item.Key))
+                            continue;
+                        blockCombined.UrlBlock[item.Key] = item.Value;
+                    }
+                    json = JsonSerializer.Serialize(blockCombined, options);
                 }
-                json = JsonSerializer.Serialize(blockCombined, options);
+                else
+                {
+                    json = JsonSerializer.Serialize(block, options);
+                }
+
+                await File.WriteAllTextAsync(filePath, json);
             }
-            else
+            finally
             {
-                json = JsonSerializer.Serialize(block, options);
-            }             
-            await File.WriteAllTextAsync(filePath, json);
+                _blockedWebsitesLock.Release();
+            }
         }
 
         public static async Task UpdateWebsiteBlockType(string url, BlockType type)
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
+            if (string.IsNullOrEmpty(url))
+                throw new ArgumentNullException(nameof(url), "URL cannot be null or empty.");
 
-            var blockedWebsites = await LoadBlockedWebsites();
+            if (!await _blockedWebsitesLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked websites.");
 
-            blockedWebsites!.UrlBlock[url].Type = type;
-            await StoreBlockedWebsites(blockedWebsites, false);
+            try
+            {
+                var blockedWebsites = await LoadBlockedWebsitesInternalUnlocked() ?? new BlockSettingsUrl();
+                if (blockedWebsites.UrlBlock == null)
+                {
+                    blockedWebsites.UrlBlock = new Dictionary<string, BlockData>();
+                }
+
+                if (!blockedWebsites.UrlBlock.ContainsKey(url))
+                {
+                    blockedWebsites.UrlBlock[url] = new BlockData(type);
+                }
+                else
+                {
+                    blockedWebsites.UrlBlock[url].Type = type;
+                }
+
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedWebsites.json");
+                string folderPath = Path.GetDirectoryName(filePath)!;
+                Directory.CreateDirectory(folderPath);
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(blockedWebsites, options);
+                await File.WriteAllTextAsync(filePath, json);
+            }
+            finally
+            {
+                _blockedWebsitesLock.Release();
+            }
         }
 
         public static async Task RemoveWebsiteBlock(string url)
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedWebsites.json");
-            var blockedWebsites = await LoadBlockedWebsites() ?? new BlockSettingsUrl();
-            if (blockedWebsites.UrlBlock.ContainsKey(url))
-            {
-                blockedWebsites.UrlBlock.Remove(url);
-            }
-            await StoreBlockedWebsites(blockedWebsites, false);
-        }
+            if (!await _blockedWebsitesLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked websites.");
 
+            try
+            {
+                var blockedWebsites = await LoadBlockedWebsitesInternalUnlocked() ?? new BlockSettingsUrl();
+                if (blockedWebsites.UrlBlock.ContainsKey(url))
+                {
+                    blockedWebsites.UrlBlock.Remove(url);
+
+                    string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedWebsites.json");
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    string json = JsonSerializer.Serialize(blockedWebsites, options);
+                    await File.WriteAllTextAsync(filePath, json);
+                }
+            }
+            finally
+            {
+                _blockedWebsitesLock.Release();
+            }
+        }
 
         public static async Task<BlockSettings?> LoadBlockedApps()
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
-            if (File.Exists(filePath))
+            if (!await _blockedAppsLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked apps.");
+
+            try
             {
-                string json = await File.ReadAllTextAsync(filePath);
-                return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedApps.json");
+                if (File.Exists(filePath))
+                {
+                    string json = await File.ReadAllTextAsync(filePath);
+                    return JsonSerializer.Deserialize<BlockSettings>(json) ?? new BlockSettings();
+                }
+                return null;
             }
-            return null;
+            finally
+            {
+                _blockedAppsLock.Release();
+            }
         }
 
         public static async Task StoreBlockedApps(BlockSettings settings)
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockedApps.json");
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings), "Settings cannot be null.");
 
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            var options = new JsonSerializerOptions
+            if (!await _blockedAppsLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for blocked apps.");
+
+            try
             {
-                WriteIndented = true
-            };
-            string json = JsonSerializer.Serialize(settings, options);
-            await File.WriteAllTextAsync(filePath, json);
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockedApps.json");
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(settings, options);
+                await File.WriteAllTextAsync(filePath, json);
+            }
+            finally
+            {
+                _blockedAppsLock.Release();
+            }
         }
 
         public static async Task<BlockSchedule?> LoadBlockSchedule()
         {
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
-            if (File.Exists(filePath))
+            if (!await _blockScheduleLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for block schedule.");
+
+            try
             {
-                string json = await File.ReadAllTextAsync(filePath); // Added async for consistency
-                var options = new JsonSerializerOptions
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockSchedule.json");
+                if (File.Exists(filePath))
                 {
-                    Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
-                };
-                return JsonSerializer.Deserialize<BlockSchedule>(json, options) ?? new BlockSchedule();
+                    string json = await File.ReadAllTextAsync(filePath);
+                    var options = new JsonSerializerOptions
+                    {
+                        Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
+                    };
+                    return JsonSerializer.Deserialize<BlockSchedule>(json, options) ?? new BlockSchedule();
+                }
+                return null;
             }
-            return null;
+            finally
+            {
+                _blockScheduleLock.Release();
+            }
         }
 
         public static async Task StoreBlockSchedule(BlockSchedule settings)
         {
-            // Save to JSON file
-            string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenris", "blockSchedule.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            var options = new JsonSerializerOptions
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings), "Settings cannot be null.");
+
+            if (!await _blockScheduleLock.WaitAsync(TimeSpan.FromSeconds(10)))
+                throw new TimeoutException("Could not acquire lock for block schedule.");
+
+            try
             {
-                WriteIndented = true,
-                Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
-            };
-            string json = JsonSerializer.Serialize(settings, options);
-            await File.WriteAllTextAsync(filePath, json);
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris", "blockSchedule.json");
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Converters = { new TimeSpanConverter(), new TimeSpanTupleConverter() }
+                };
+                string json = JsonSerializer.Serialize(settings, options);
+                await File.WriteAllTextAsync(filePath, json);
+            }
+            finally
+            {
+                _blockScheduleLock.Release();
+            }
         }
     }
+
+
 
     // Custom TimeSpan Converter
     public class TimeSpanConverter : JsonConverter<TimeSpan>

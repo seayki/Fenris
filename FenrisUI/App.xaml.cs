@@ -54,6 +54,7 @@ namespace FenrisUI
         {
             _window = _serviceProvider.GetRequiredService<MainWindow>();
             _window.Activate();
+            _window.SetTitleBar(null);
             var hWnd = WindowNative.GetWindowHandle(_window);
             var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd));
             appWindow.Title = ""; // Clear title

@@ -249,15 +249,30 @@ namespace FenrisUI
         }
         public async void UpdateApps_Click(object sender, RoutedEventArgs e)
         {
-            if (IsBlocked)
+            var blockedProcesses = await UserConfiguration.LoadBlockedApps();
+            if (SelectedProcesses != null)
             {
-                await ShowBlockMessage();
-                return;
+                if (blockedProcesses != null && IsBlocked)
+                {
+                    var blockedProcessesNames = blockedProcesses.BlockedProcesses
+                        .Select(p => p.Name)
+                        .ToHashSet();
+                    var selectedProcessesNames = SelectedProcesses
+                        .Select(p => p.Name)
+                        .ToHashSet();
+                    bool allBlockedProcessesSelected = blockedProcessesNames.All(name => selectedProcessesNames.Contains(name));
+
+                    if (!allBlockedProcessesSelected)
+                    {
+                        await ShowBlockMessage();
+                        return;
+                    }
+                }
+                var processesToBlock = SelectedProcesses.ToList();
+                var blockSettings = new BlockSettings(processesToBlock);
+                await UserConfiguration.StoreBlockedApps(blockSettings);
+                ShowInfoMessage("Saved Changes", InfoEnum.success);
             }
-            var processesToBlock = SelectedProcesses.ToList();
-            var blockSettings = new BlockSettings(processesToBlock);
-            await UserConfiguration.StoreBlockedApps(blockSettings);
-            await ShowActionSuccess("Save successful");
         }
         #endregion
 
@@ -503,12 +518,20 @@ namespace FenrisUI
                 }
             }
             await UserConfiguration.StoreBlockSchedule(new BlockSchedule(blockTimes));
-            await ShowActionSuccess("Save successful");
+            ShowInfoMessage("Saved Changes", InfoEnum.success);
         }
 
         #endregion
 
         #region Website Block
+
+        private void AddWebsite_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            if (e.Key == Windows.System.VirtualKey.Enter)
+            {
+                AddUrlBlock_Click(sender, e);
+            }
+        }
         private async Task LoadBlockedUrls(BlockSettingsUrl blockSettingUrl)
         {
             if (blockSettingUrl == null) return;
@@ -530,13 +553,13 @@ namespace FenrisUI
                     if (urlBlock.BlockType == BlockType.Full)
                     {
                         urlBlock.BlockType = BlockType.Schedule;
-                        toggleButton.Content = "Schedule";
+                        toggleButton.Content = BlockType.Schedule;
                         toggleButton.Background = urlBlock.BackgroundColor;
                     }
                     else if (urlBlock.BlockType == BlockType.Schedule)
                     {
                         urlBlock.BlockType = BlockType.Full;
-                        toggleButton.Content = "Full";
+                        toggleButton.Content = BlockType.Full;
                         toggleButton.Background = urlBlock.BackgroundColor;
                     }
                     // Update firewall in json
@@ -549,10 +572,19 @@ namespace FenrisUI
         {
             if (sender is Button button)
             {
+                if (IsBlocked)
+                {
+                    await ShowBlockMessage();
+                    return;
+                }
                 string url = button.Tag.ToString()!;
-                await UserConfiguration.RemoveWebsiteBlock(url);
-                WebBlockerFirewall.RemoveFirewallBlock(url);
-                urlBlocks.Remove(urlBlocks.Where(a => a.Url == url).First());
+                bool doesExist = urlBlocks.Where(a => a.Url == url).Any();
+                if (doesExist)
+                {
+                    urlBlocks.Remove(urlBlocks.Where(a => a.Url == url).First());
+                    await UserConfiguration.RemoveWebsiteBlock(url);
+                    await WebBlockerFirewall.RemoveFirewallBlock(url);
+                }
             }
         }
 
@@ -577,11 +609,6 @@ namespace FenrisUI
 
         public async void ApplyLabelBlock_Click(object sender, RoutedEventArgs e)
         {
-            if (IsBlocked)
-            {
-                await ShowBlockMessage();
-                return;
-            }
             if (sender is Button button)
             {
                 var label = button.Tag.ToString();
@@ -603,42 +630,54 @@ namespace FenrisUI
                 await UserConfiguration.StoreBlockedWebsites(urlBlock);
             }
         }
-
         public async Task CreateUrlBlock(string url, bool bulk = false)
         {
             UrlBlock urlBlock = new UrlBlock(null, url, BlockType.Full);
             urlBlocks.Add(urlBlock);
-            await WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);
             if (!bulk)
             {
                 await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
             }
+            await WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);        
         }
 
         public async void AddUrlBlock_Click(object sender, RoutedEventArgs e)
-        {
-            if (IsBlocked)
+        {          
+            string url = WebsiteTextBox.Text.Trim().ToLower();
+            if (string.IsNullOrEmpty(url))
             {
-                await ShowBlockMessage();
+                ShowInfoMessage("URL can not be empty", InfoEnum.warning);
+                WebsiteTextBox.Text = "";
                 return;
             }
-           
-            string url = WebsiteTextBox.Text.Trim().ToLower();
             if (DoesUrlAlreadyExist(url))
             {
                 WebsiteTextBox.Text = "";
-                ShowErrorMessage("This URL is already blocked.");
+                ShowInfoMessage("This URL is already blocked.", InfoEnum.warning);
                 return;
             }
-            if (string.IsNullOrEmpty(url))
+            if (!DoesUrlSatisfyRequirements(url))
             {
                 WebsiteTextBox.Text = "";
+                ShowInfoMessage("URL must have a valid top level domain (.com, .net etc.)", InfoEnum.warning);
+                return;
             }
-            WebsiteTextBox.Text = "";
             url = CheckAndFormatUrl(url);
+            WebsiteTextBox.Text = "";
             await CreateUrlBlock(url);
         }
 
+        private bool DoesUrlSatisfyRequirements(string url)
+        {
+            if (!url.Contains("."))
+                return false;
+
+            string[] urlParts = url.Split('.');
+            string tld = urlParts.Last();
+
+            // Check if the TLD matches any of the recognized domains
+            return StaticDataService.RecognizedDomains.Contains(tld);
+        }
         private bool DoesUrlAlreadyExist(string url)
         {
             foreach (var item in urlBlocks)
@@ -654,25 +693,27 @@ namespace FenrisUI
         #endregion
 
         #region User action feedback
-        private void ShowErrorMessage(string message)
+        private async void ShowInfoMessage(string message, InfoEnum type)
         {
             ErrorInfoBar.Message = message;
+            if (type == InfoEnum.warning)
+            {
+                ErrorInfoBar.Severity = InfoBarSeverity.Error;
+                ErrorInfoBar.Title = "Warning";
+            }
+            else if (type == InfoEnum.info)
+            {
+                ErrorInfoBar.Severity = InfoBarSeverity.Informational;
+                ErrorInfoBar.Title = "Information";
+            }
+            else
+            {
+                ErrorInfoBar.Severity = InfoBarSeverity.Success;
+                ErrorInfoBar.Title = "Success";
+            }
             ErrorInfoBar.IsOpen = true;
-        }
-
-        private async Task ShowActionSuccess(string actionMessage)
-        {
-            // Set the text of the TextBlock
-            SuccessMessageTextBlock.Text = actionMessage;
-
-            // Make the Border that contains the TextBlock visible
-            SuccessMessageBorder.Visibility = Visibility.Visible;
-
-            // Wait for 1 second
             await Task.Delay(1500);
-
-            // Hide the Border again
-            SuccessMessageBorder.Visibility = Visibility.Collapsed;
+            ErrorInfoBar.IsOpen = false;
         }
 
         private async Task ShowBlockMessage()

@@ -31,7 +31,7 @@
                         <MudText Typo="Typo.h6">Download</MudText>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Download">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Download" Href=@downloadLink>
                             Get Started
                         </MudButton>
                     </MudCardContent>
@@ -42,11 +42,12 @@
 </MudPaper>
 
 
-
 @code {
+    private readonly string downloadLink = "";
     protected override void OnInitialized()
     {
         userSettings.OnDarkModeChanged += OnDarkModeChanged;
+       
     }
 
     private void OnDarkModeChanged(object? sender, EventArgs e)
@@ -62,7 +63,7 @@
     private string GetBackgroundStyle()
     {
         var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
-                                    "background-image: url('/images/FenrisApp.jpg'); background-size: contain; background-position: top; background-repeat: no-repeat;";
+                                    "background-image: url('/images/Apps.png'); background-size: contain; background-position: top; background-repeat: no-repeat;";
         var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
         return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
     }
