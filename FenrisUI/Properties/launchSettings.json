@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FenrisUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "FenrisUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
