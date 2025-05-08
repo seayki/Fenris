@@ -4,6 +4,12 @@
     flex-direction: column;
 }
 
+.no-hover:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important; /* If any opacity is set on hover */
+}
+
 main {
     flex: 1;
 }

@@ -2,16 +2,19 @@
 @inject UserSettings userSettings
 @page "/"
 
-<PageTitle>Home</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<MudPaper Square="true" Style="@GetBackgroundStyle()">
+    <MudContainer MaxWidth="MaxWidth.Small" Style="margin-top: 300px; display: flex; justify-content: center; align-items: flex-start; height: 100vh;">
+        <MudText Style="color: white; text-align: center; font-size: 60px;">
+            Stay productive with FenrisBlock.
+        </MudText>
+    </MudContainer>
+</MudPaper>
 @code {
     protected override void OnInitialized()
     {
         // Listen for changes in user settings
         userSettings.OnDarkModeChanged += OnDarkModeChanged;
+       
     }
 
     private void OnDarkModeChanged(object? sender, EventArgs e)
@@ -27,8 +30,7 @@ Welcome to your new app.
     private string GetBackgroundStyle()
     {
         var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
-                                    "background-image: url('/images/FenrisApp.jpg'); background-size: contain; background-position: top; background-repeat: no-repeat;";
-        var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
-        return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
+                                    "background-image: url('/images/MountainNight.jpg'); background-size: 100% auto; background-position: top; background-repeat: no-repeat;";
+        return $"{staticBackgroundStyle} background-color: {userSettings.CurrentBackgroundColor};";
     }
 }
