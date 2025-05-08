@@ -8,7 +8,7 @@
     <MudContainer MaxWidth="MaxWidth.Large" Style="margin-top: 100px;">
         <MudGrid Justify="Justify.Center">
             <MudItem xs="12">
-                <MudText Style="text-align: center; font-weight: 300" Typo="Typo.h4">Support and Feedback</MudText>
+                <MudText Style="text-align: center; font-weight: 300; color: white" Typo="Typo.h4">Support and Feedback</MudText>
             </MudItem>
             <!-- Create Ticket Section -->
             <MudItem xs="12" md="7" Style="margin-top: 100px;">
@@ -78,13 +78,14 @@
         userSettings.OnDarkModeChanged -= OnDarkModeChanged;
     }
 
+
     private string GetBackgroundStyle()
     {
         var staticBackgroundStyle = "min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; " +
-                                     "background-image: url('/images/Website.png'); background-size: contain; background-position: top; background-repeat: no-repeat;";
-        var blendMode = userSettings.IsDarkMode ? "soft-light" : "darken";
-        return $"{staticBackgroundStyle} background-blend-mode: {blendMode}; background-color: {userSettings.CurrentBackgroundColor};";
+                                   "background-image: url('/images/RetroPC.jpg'); background-size: 100% auto; background-position: top; background-repeat: no-repeat;";
+        return $"{staticBackgroundStyle} background-color: {userSettings.CurrentBackgroundColor};";
     }
+    
 
     private async Task SendEmail()
     {

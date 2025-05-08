@@ -6,7 +6,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - FenrisBlockWebApp
 on:
   push:
     branches:
-      - FenrisBlazorWebApp
+      - main
   workflow_dispatch:
 
 jobs:
@@ -23,11 +23,11 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Build FenrisWebsite project
+        run: dotnet build ./FenrisWebsite/FenrisWebsite.csproj --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Publish FenrisWebsite project
+        run: dotnet publish ./FenrisWebsite/FenrisWebsite.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
