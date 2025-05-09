@@ -1,5 +1,4 @@
 ﻿using Fenris.DiscoveryServices;
-using Fenris.FirewallService;
 using Fenris.Models;
 using Fenris.Storage;
 using FenrisUI.Models;
@@ -562,7 +561,7 @@ namespace FenrisUI
                         toggleButton.Content = BlockType.Full;
                         toggleButton.Background = urlBlock.BackgroundColor;
                     }
-                    // Update firewall in json
+                    // Update block type in json
                     await UserConfiguration.UpdateWebsiteBlockType(urlBlock.Url, urlBlock.BlockType);
                 }
             }
@@ -583,7 +582,6 @@ namespace FenrisUI
                 {
                     urlBlocks.Remove(urlBlocks.Where(a => a.Url == url).First());
                     await UserConfiguration.RemoveWebsiteBlock(url);
-                    await WebBlockerFirewall.RemoveFirewallBlock(url);
                 }
             }
         }
@@ -637,8 +635,7 @@ namespace FenrisUI
             if (!bulk)
             {
                 await UserConfiguration.StoreBlockedWebsites(new BlockSettingsUrl(url, BlockType.Full));
-            }
-            await WebBlockerFirewall.AddFirewallBlock(url, BlockType.Full);        
+            }      
         }
 
         public async void AddUrlBlock_Click(object sender, RoutedEventArgs e)
@@ -689,9 +686,7 @@ namespace FenrisUI
             }
             return false;
         }
-
         #endregion
-
         #region User action feedback
         private async void ShowInfoMessage(string message, InfoEnum type)
         {
