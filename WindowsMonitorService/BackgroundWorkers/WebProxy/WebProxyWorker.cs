@@ -117,8 +117,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
 
                 if (blockData.Type == BlockType.Full)
                 {
-                    var blockedHtml = string.Format(BlockedPageHtml.BlockedPage, "Blocked by FenrisBlock (Scheduled)");
-                    e.Ok(blockedHtml);
+                    e.Ok("<html><body><h1>Blocked by FenrisBlock</h1></body></html>");
                     return;
                 }
 
@@ -132,8 +131,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
                         {
                             if (now.TimeOfDay >= start && now.TimeOfDay <= end)
                             {
-                                var blockedHtml = string.Format(BlockedPageHtml.BlockedPage, "Blocked by FenrisBlock (Scheduled)");
-                                e.Ok(blockedHtml);
+                                e.Ok("<html><body><h1>Blocked by FenrisBlock</h1></body></html>");
                                 return;
                             }
                         }
@@ -142,33 +140,5 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
             }
             return;
         }
-    }
-
-    public static class BlockedPageHtml
-    {
-        public static string BlockedPage => @"
-        <html>
-            <head>
-                <style>
-                    body {
-                        background-color: #333;
-                        color: #ccc;
-                        font-family: Arial, sans-serif;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
-                        margin: 0;
-                    }
-                    h1 {
-                        font-size: 32px;
-                        text-align: center;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>{0}</h1>
-            </body>
-        </html>";
     }
 }
