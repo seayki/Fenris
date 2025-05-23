@@ -1,11 +1,7 @@
-﻿using Fenris;
-using Fenris.DiscoveryServices;
-using FenrisService.BackgroundWorkers.IconUrl;
+﻿using FenrisService.BackgroundWorkers.IconUrl;
 using FenrisService.BackgroundWorkers.Process;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System.Diagnostics;
-using WindowsMonitorService.BackgroundWorkers.WebProxy;
+using FenrisService.BackgroundWorkers.WebProxy;
+
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>

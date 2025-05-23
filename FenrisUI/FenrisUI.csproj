@@ -11,10 +11,12 @@
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+		<SelfContained>true</SelfContained>
 		<PublishTrimmed>false</PublishTrimmed>
 		<PublishReadyToRun>true</PublishReadyToRun>
 		<WindowsPackageType>None</WindowsPackageType>
 		<ApplicationIcon>FenrisBlockIcon.ico</ApplicationIcon>
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	</PropertyGroup>
 	
 	<ItemGroup>
@@ -34,9 +36,7 @@
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.2428" />
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.Primitives" Version="8.1.240821" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-	</ItemGroup>
-
-	
+	</ItemGroup>	
 	<ItemGroup>
     <!-- Include all files in the Assets folder -->
     <None Update="Assets\**\*">

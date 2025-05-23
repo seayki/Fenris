@@ -1,6 +1,4 @@
 ﻿using Fenris.Models;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
 {

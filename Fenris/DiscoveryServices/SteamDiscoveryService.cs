@@ -1,13 +1,7 @@
-﻿using Fenris.Models;
-using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.Win32;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Process = Fenris.Models.Process;
 
 namespace Fenris.DiscoveryServices

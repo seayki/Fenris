@@ -1,14 +1,4 @@
-﻿using Fenris;
-using FenrisService.BackgroundWorkers.IconUrl;
-using FenrisService.BackgroundWorkers.Process;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FenrisService.BackgroundWorkers.IconUrl
+﻿namespace FenrisService.BackgroundWorkers.IconUrl
 {
     public class IconUrlWorker : BackgroundService
     {

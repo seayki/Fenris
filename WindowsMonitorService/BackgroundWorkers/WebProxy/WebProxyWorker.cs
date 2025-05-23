@@ -1,16 +1,11 @@
 ﻿using Fenris.Models;
 using Fenris.Storage;
-using FenrisService.BackgroundWorkers.Process;
-using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Cryptography.X509Certificates;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.Models;
+using Titanium.Web.Proxy.Network;
 
-namespace WindowsMonitorService.BackgroundWorkers.WebProxy
+namespace FenrisService.BackgroundWorkers.WebProxy
 {
     public class WebProxyWorker : BackgroundService
     {
@@ -22,6 +17,34 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
 
         private FileSystemWatcher blockSettingWatcher;
         private FileSystemWatcher blockSettingUrlWatcher;
+
+        string htmlContent = @"
+               <html>
+               <head>
+                   <style>
+                       html, body {
+                           height: 100%;
+                           margin: 0;
+                       }
+                       body {
+                           display: flex;
+                           align-items: center;
+                           justify-content: center;
+                           font-family: sans-serif;
+                           background-color: #f9f9f9;
+                       }
+                       h1 {
+                           text-align: center;
+                           color: #444;
+                           margin-bottom: 100px;
+                       }
+                   </style>
+               </head>
+               <body>
+                   <h1>Blocked by FenrisBlock.</h1>
+               </body>
+               </html>";
+
         public WebProxyWorker(ILogger<WebProxyWorker> logger)
         {
             // Load the block settings from the configuration
@@ -64,7 +87,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
             }
             catch (TaskCanceledException)
             {
-               
+
             }
             catch (Exception ex)
             {
@@ -82,6 +105,8 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
         private ProxyServer CreateProxy()
         {
             var proxyServer = new ProxyServer();
+            proxyServer.CertificateManager.CreateRootCertificate();
+            proxyServer.CertificateManager.TrustRootCertificate(true);
             proxyServer.Start();
             proxyServer.BeforeRequest += ProxyServer_BeforeRequest;
             var explicitEndpoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Any, 8000, true);
@@ -96,7 +121,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
             if (UserConfigurationHasChanged)
             {
                 var schedule = await UserConfiguration.LoadBlockSchedule();
-                blockScheduleCache = schedule?.Block;   
+                blockScheduleCache = schedule?.Block;
                 var websites = await UserConfiguration.LoadBlockedWebsites();
                 blockSettingUrlCache = websites?.UrlBlock;
                 UserConfigurationHasChanged = false;
@@ -117,7 +142,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
 
                 if (blockData.Type == BlockType.Full)
                 {
-                    e.Ok("<html><body><h1>Blocked by FenrisBlock</h1></body></html>");
+                    e.Ok(htmlContent);
                     return;
                 }
 
@@ -131,7 +156,7 @@ namespace WindowsMonitorService.BackgroundWorkers.WebProxy
                         {
                             if (now.TimeOfDay >= start && now.TimeOfDay <= end)
                             {
-                                e.Ok("<html><body><h1>Blocked by FenrisBlock</h1></body></html>");
+                                e.Ok(htmlContent);
                                 return;
                             }
                         }

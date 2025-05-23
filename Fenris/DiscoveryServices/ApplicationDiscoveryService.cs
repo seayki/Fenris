@@ -1,11 +1,6 @@
 ﻿using Fenris.IconServices;
 using Fenris.Models;
 using Fenris.Storage;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Fenris.DiscoveryServices
 {

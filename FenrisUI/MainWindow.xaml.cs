@@ -3,21 +3,17 @@ using Fenris.Models;
 using Fenris.Storage;
 using FenrisUI.Models;
 using FenrisUI.Services;
-using Microsoft.PowerShell.Commands;
 using Microsoft.UI;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Policy;
 using System.Threading.Tasks;
 using Color = Windows.UI.Color;
 using IconService = FenrisUI.Services.IconService;
@@ -75,6 +71,11 @@ namespace FenrisUI
 
         public MainWindow()
         {
+            this.InitializeComponent();
+        }
+
+        private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
+        {
             try
             {
                 // Initialize time pickers dictionary
@@ -82,25 +83,30 @@ namespace FenrisUI
                 {
                     dayTimePickers[day] = new List<TimePicker>();
                 }
+
                 // Initialize web labels with icons
                 foreach (var category in StaticDataService.WebsiteCategory)
                 {
                     Labels.Add(category);
                 }
 
-                this.InitializeComponent();
-                _ = LoadDataAsync();
+                await LoadDataAsync();
+
+                LoadingGrid.Visibility = Visibility.Collapsed;
+                AppContentGrid.Visibility = Visibility.Visible;
             }
             catch
             {
-                this.Content = new TextBlock
+                RootGrid.Children.Clear();
+                RootGrid.Children.Add(new TextBlock
                 {
                     Text = "Error loading data.",
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
-                };
+                });
             }
         }
+
 
         #region General
         private async Task LoadDataAsync()
@@ -588,13 +594,6 @@ namespace FenrisUI
 
         public string CheckAndFormatUrl(string url)
         {
-            // Check if the URL starts with "www."
-            if (!url.StartsWith("www."))
-            {
-                // If not, add "www." to the beginning of the URL
-                url = "www." + url;
-            }
-
             // Split to validate domain format (e.g., "example.com")
             var parts = url.Split('.');
             if (parts.Length < 2 || parts.Any(string.IsNullOrWhiteSpace))
@@ -687,6 +686,7 @@ namespace FenrisUI
             return false;
         }
         #endregion
+
         #region User action feedback
         private async void ShowInfoMessage(string message, InfoEnum type)
         {

@@ -1,6 +1,3 @@
-
-using Fenris.DiscoveryServices;
-
 namespace FenrisService.BackgroundWorkers.Process
 {
     public class ProcessWorker : BackgroundService

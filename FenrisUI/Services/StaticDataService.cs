@@ -1,13 +1,8 @@
 ﻿using FenrisUI.Models;
-using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Color = Windows.UI.Color;
 
 namespace FenrisUI.Services
