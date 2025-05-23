@@ -304,7 +304,7 @@
                                         ItemsSource="{x:Bind urlBlocks}"
                                         SelectionMode="None"
                                         VerticalAlignment="Stretch"
-                                        HorizontalAlignment="Stretch"
+                                        HorizontalAlignment="Center"
                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <ListView.ItemsPanel>
                                     <ItemsPanelTemplate>
