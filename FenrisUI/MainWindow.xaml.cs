@@ -420,7 +420,7 @@ namespace FenrisUI
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(10),
                 Margin = new Thickness(0, 0, 0, 10),
-                Width = 270,
+                Width = 250,
             };
 
             var stackPanel = new StackPanel

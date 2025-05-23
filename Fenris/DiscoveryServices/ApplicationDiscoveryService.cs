@@ -87,7 +87,6 @@ namespace Fenris.DiscoveryServices
             {
                 return iconPath;
             }
-
             try
             {
                 var iconBitmap = HighResolutionIconExtractor.GetHighResIcon(exePath, 256);
