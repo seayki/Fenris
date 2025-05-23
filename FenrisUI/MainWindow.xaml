@@ -229,10 +229,10 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="10" Margin="0, 50, 0, 0" MaxWidth="1000" Width="Auto">
+                            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="10" Margin="0, 30, 0, 0" Width="Auto" MaxWidth="1350">
                                 <TextBlock Text="Enter Websites To Block" FontSize="22" FontWeight="Medium" Margin="0, 0, 0, 10" HorizontalAlignment="Center"/>
                                 <!-- Grid to hold TextBox and Button -->
-                                <Grid MaxWidth="1500" HorizontalAlignment="Center">
+                                <Grid MaxWidth="1000" HorizontalAlignment="Center">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
