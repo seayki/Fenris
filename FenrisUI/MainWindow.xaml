@@ -218,18 +218,14 @@
                         </Border>
                     </StackPanel>
                 </PivotItem>
-                <PivotItem Header="Websites" Padding="20" Margin="0, 20, 0, 0">
-                    <Border CornerRadius="25" ScrollViewer.VerticalScrollMode="Auto">
-                        <Border.Background>
-                            <ImageBrush ImageSource="/Assets/Globe.png" Stretch="Uniform" Opacity="0.05"/>
-                        </Border.Background>
+                    <PivotItem Header="Websites" Padding="20" Margin="0, 20, 0, 0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="10" Margin="0, 30, 0, 0" Width="Auto" MaxWidth="1350">
+                            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="10" Width="Auto" MaxWidth="1350">
                                 <TextBlock Text="Enter Websites To Block" FontSize="22" FontWeight="Medium" Margin="0, 0, 0, 10" HorizontalAlignment="Center"/>
                                 <!-- Grid to hold TextBox and Button -->
                                 <Grid MaxWidth="1000" HorizontalAlignment="Center">
@@ -272,30 +268,30 @@
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
                                 </GridView>
-                                    <StackPanel HorizontalAlignment="Center" Spacing="20">
-                                        <TextBlock Text="Blocked Websites" FontSize="20" FontWeight="Medium" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="(Change between following schedule or permanent block)." FontSize="12" FontWeight="Medium" HorizontalAlignment="Center"/>
-                                        <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" MaxHeight="400">
-                                            <ListView ItemsSource="{x:Bind urlBlocks}" SelectionMode="None">
-                                                <ListView.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapGrid Orientation="Horizontal" HorizontalAlignment="Stretch"/>
-                                                    </ItemsPanelTemplate>
-                                                </ListView.ItemsPanel>
-                                                <ListView.ItemTemplate>
-                                                    <DataTemplate x:DataType="UIModels:UrlBlock">
-                                                        <StackPanel Orientation="Horizontal" MinWidth="400" Margin="5">
-                                                            <Grid Width="400">
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <StackPanel Orientation="Horizontal" Spacing="10" Grid.Column="0" Background="#ececec" Padding="10, 0, 0, 0" CornerRadius="10">
-                                                                    <Image Width="16" Height="16" Source="{x:Bind Icon, Mode=TwoWay}" />
-                                                                    <TextBlock Text="{x:Bind Url}" VerticalAlignment="Center"/>
-                                                                </StackPanel>
-                                                                <Button Content="{x:Bind BlockType, Mode=TwoWay}"
+                                <StackPanel HorizontalAlignment="Center" Spacing="20">
+                                    <TextBlock Text="Blocked Websites" FontSize="20" FontWeight="Medium" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="(Change between following schedule or permanent block)." FontSize="12" FontWeight="Medium" HorizontalAlignment="Center"/>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" MaxHeight="250">
+                                        <ListView ItemsSource="{x:Bind urlBlocks}" SelectionMode="None">
+                                            <ListView.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapGrid Orientation="Horizontal" HorizontalAlignment="Stretch"/>
+                                                </ItemsPanelTemplate>
+                                            </ListView.ItemsPanel>
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="UIModels:UrlBlock">
+                                                    <StackPanel Orientation="Horizontal" MinWidth="400" Margin="5">
+                                                        <Grid Width="400">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel Orientation="Horizontal" Spacing="10" Grid.Column="0" Background="#ececec" Padding="10, 0, 0, 0" CornerRadius="10">
+                                                                <Image Width="16" Height="16" Source="{x:Bind Icon, Mode=TwoWay}" />
+                                                                <TextBlock Text="{x:Bind Url}" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                            <Button Content="{x:Bind BlockType, Mode=TwoWay}"
                                                                     MinWidth="100"
                                                                     Margin="10, 0, 0, 0"
                                                                     Background="{x:Bind BackgroundColor}"
@@ -303,7 +299,7 @@
                                                                     Click="UpdateBlockTypeButton_Click"
                                                                     CornerRadius="5"
                                                                     Grid.Column="1"/>
-                                                                                                <Button Content="Remove" 
+                                                            <Button Content="Remove" 
                                                                     Tag="{x:Bind Url}"
                                                                     VerticalAlignment="Center" 
                                                                     HorizontalAlignment="Center"
@@ -312,17 +308,16 @@
                                                                     CornerRadius="5"
                                                                     Click="RemoveWebBlock_Click"
                                                                     Background="#b93d37"/>
-                                                            </Grid>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </ListView.ItemTemplate>
-                                            </ListView>
-                                        </ScrollViewer>
-                                    </StackPanel>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </ScrollViewer>
                                 </StackPanel>
+                            </StackPanel>
                         </Grid>
-                    </Border>
-                </PivotItem>
+                    </PivotItem>
             </Pivot>
         </StackPanel>
         <Border x:Name="SuccessMessageBorder"
