@@ -1,4 +1,4 @@
-# Fenris
+# Fenris https://fenrisblockwebapp-e7djgyfyggcae9ds.westeurope-01.azurewebsites.net/ 
 This app is created for anyone, who wishes to enforce certain rules on their PC, 
 whether to increase productivity, or remove bad habits.
 
