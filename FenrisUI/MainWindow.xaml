@@ -37,7 +37,14 @@
 
             <!-- Pivot -->
             <Pivot Grid.Row="1" Margin="40, -70, 40, 0" Padding="10" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <PivotItem Header="Apps" Background="#ffffff" Padding="20" Margin="0, 20, 0, 0">
+                <PivotItem Background="#ffffff" Padding="20" Margin="0, 20, 0, 0">
+                    <PivotItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Apps" VerticalAlignment="Center"/>
+                            <FontIcon Glyph="&#xF0E2;" Margin="7,0,15,0"/>
+                        </StackPanel>
+                    </PivotItem.Header>
+
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -148,7 +155,13 @@
 
 
 
-                <PivotItem Header="Schedule" Background="#ffffff" Padding="20" Margin="0,0,0,0">
+                <PivotItem Background="#ffffff" Padding="20" Margin="0,0,0,0">
+                    <PivotItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Schedule" VerticalAlignment="Center"/>
+                            <FontIcon Glyph="&#xE787;" Margin="7, 0, 15, 0"/>
+                        </StackPanel>
+                    </PivotItem.Header>
                     <!-- Fills all available space -->
                     <Grid VerticalAlignment="Stretch">
                         <Grid.RowDefinitions>
@@ -234,7 +247,13 @@
 
 
 
-                <PivotItem Header="Websites" Padding="20" Margin="0, 20, 0, 0">
+                <PivotItem Padding="20" Margin="0, 20, 0, 0">
+                    <PivotItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Websites" VerticalAlignment="Center"/>
+                            <FontIcon Glyph="&#xE774;" Margin="7, 0, 0, 0"/>
+                        </StackPanel>
+                    </PivotItem.Header>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
