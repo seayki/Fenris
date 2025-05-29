@@ -13,7 +13,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .UseWindowsService(options =>
     {
-        options.ServiceName = "Fenris Proxy and Process Termination service";
+        options.ServiceName = "WindowsMonitorService";
     })
     .Build();
 await host.RunAsync();
