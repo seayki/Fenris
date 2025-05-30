@@ -1,10 +1,10 @@
 ﻿using Fenris.Models;
 using Fenris.Storage;
-using System.Security.Cryptography.X509Certificates;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Network;
+using System.Net;
 
 namespace FenrisService.BackgroundWorkers.WebProxy
 {
@@ -12,12 +12,11 @@ namespace FenrisService.BackgroundWorkers.WebProxy
     {
         public bool UserConfigurationHasChanged = false;
         private readonly ILogger<WebProxyWorker> _logger;
-
         private Dictionary<DayOfWeek, List<(TimeSpan BlockStart, TimeSpan BlockEnd)>>? blockScheduleCache;
         private Dictionary<string, BlockData>? blockSettingUrlCache;
-
         private FileSystemWatcher blockSettingWatcher;
         private FileSystemWatcher blockSettingUrlWatcher;
+        private ProxyServer? proxyServer;
 
         string htmlContent = @"
                <html>
@@ -48,45 +47,54 @@ namespace FenrisService.BackgroundWorkers.WebProxy
 
         public WebProxyWorker(ILogger<WebProxyWorker> logger)
         {
-            // Load the block settings from the configuration
-            blockScheduleCache = UserConfiguration.LoadBlockSchedule().Result?.Block;
-            blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result?.UrlBlock;
             _logger = logger;
 
-            // Watch for changes in CommonApplicationData
-            string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris");
-            blockSettingWatcher = new FileSystemWatcher(settingsPath, "blockSchedule.json")
+            try
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
-            };
-            blockSettingWatcher.Changed += OnSettingsFileChanged;
-            blockSettingWatcher.EnableRaisingEvents = true;
-            blockSettingUrlWatcher = new FileSystemWatcher(settingsPath, "blockedWebsites.json")
+                string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Fenris");
+                Directory.CreateDirectory(settingsPath);
+                _logger.LogInformation("Ensured Fenris directory exists: {Path}", settingsPath);
+
+                blockScheduleCache = UserConfiguration.LoadBlockSchedule().Result?.Block;
+                blockSettingUrlCache = UserConfiguration.LoadBlockedWebsites().Result?.UrlBlock;
+
+                blockSettingWatcher = new FileSystemWatcher(settingsPath, "blockSchedule.json")
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+                };
+                blockSettingWatcher.Changed += OnSettingsFileChanged;
+                blockSettingWatcher.EnableRaisingEvents = true;
+
+                blockSettingUrlWatcher = new FileSystemWatcher(settingsPath, "blockedWebsites.json")
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+                };
+                blockSettingUrlWatcher.Changed += OnSettingsFileChanged;
+                blockSettingUrlWatcher.EnableRaisingEvents = true;
+
+                _logger.LogInformation("WebProxyWorker initialized successfully");
+            }
+            catch (Exception ex)
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
-            };
-            blockSettingUrlWatcher.Changed += OnSettingsFileChanged;
-            blockSettingUrlWatcher.EnableRaisingEvents = true;
+                _logger.LogError(ex, "Failed to initialize WebProxyWorker");
+                throw;
+            }
         }
-
-        private bool IsBlockedDomain(string host) =>
-            blockSettingUrlCache.Keys.Any(k => host.Contains(k, StringComparison.OrdinalIgnoreCase));
-
-        private bool IsBlockedUrl(string url) =>
-            blockSettingUrlCache!.Keys.Any(k => url.Contains(k, StringComparison.OrdinalIgnoreCase));
 
         private void OnSettingsFileChanged(object sender, FileSystemEventArgs e)
         {
+            _logger.LogInformation("Configuration file changed: {File}", e.FullPath);
             UserConfigurationHasChanged = true;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var proxy = CreateProxy();
-            _logger.LogInformation("WebProxyWorker started.");
+            _logger.LogInformation("WebProxyWorker starting...");
             try
             {
-                // Wait until the service is requested to stop
+                proxyServer = CreateProxy();
+                _logger.LogInformation("WebProxyWorker started successfully");
+
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, stoppingToken);
@@ -94,106 +102,194 @@ namespace FenrisService.BackgroundWorkers.WebProxy
             }
             catch (TaskCanceledException)
             {
-
+                _logger.LogInformation("WebProxyWorker cancellation requested");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An unexpected error occurred in WebProxyWorker.");
+                _logger.LogError(ex, "Unexpected error in WebProxyWorker");
+                throw;
             }
             finally
             {
                 _logger.LogInformation("Stopping proxy and restoring system settings...");
-                proxy.Stop();
-                proxy.DisableAllSystemProxies();
-                _logger.LogInformation("WebProxyWorker stopped.");
+                if (proxyServer != null)
+                {
+                    proxyServer.Stop();
+                    proxyServer.DisableAllSystemProxies();
+                    proxyServer.Dispose();
+                    _logger.LogInformation("Proxy stopped and system settings restored");
+                }
+                _logger.LogInformation("WebProxyWorker stopped");
             }
         }
 
         private ProxyServer CreateProxy()
         {
-            var proxyServer = new ProxyServer
+            try
             {
-                EnableHttp2 = true,
-                ForwardToUpstreamGateway = true
-            };
+                var proxyServer = new ProxyServer();
+                _logger.LogInformation("Starting proxy server...");
+                proxyServer.Start();
 
-            proxyServer.BeforeRequest += ProxyServer_BeforeRequest;
+                // Add event handlers
+                proxyServer.BeforeRequest += ProxyServer_BeforeRequest;
+                var explicitEndpoint = new ExplicitProxyEndPoint(IPAddress.Any, 8000, false);
+                _logger.LogInformation("Adding explicit endpoint: {IpAddress}:{Port}, DecryptSsl: {DecryptSsl}",
+                    explicitEndpoint.IpAddress, explicitEndpoint.Port, explicitEndpoint.DecryptSsl);
+                proxyServer.AddEndPoint(explicitEndpoint);
+                explicitEndpoint.BeforeTunnelConnectRequest += ProxyServer_BeforeTunnelConnect;
 
-            var explicitEndPoint = new ExplicitProxyEndPoint(System.Net.IPAddress.Any, 8000, decryptSsl: false); // Don't intercept HTTPS
-            proxyServer.AddEndPoint(explicitEndPoint);
-            proxyServer.Start();
+                _logger.LogInformation("Setting system HTTP/HTTPS proxy...");
+                proxyServer.SetAsSystemHttpProxy(explicitEndpoint);
+                proxyServer.SetAsSystemHttpsProxy(explicitEndpoint);
 
-            proxyServer.SetAsSystemHttpProxy(explicitEndPoint);
-            proxyServer.SetAsSystemHttpsProxy(explicitEndPoint);
+                // Verify system proxy settings
+                _logger.LogInformation("System proxy settings applied. Checking current proxy configuration...");
+                var currentProxy = WebRequest.GetSystemWebProxy();
+                var testUri = new Uri("http://example.com");
+                var proxyUri = currentProxy.GetProxy(testUri);
+                _logger.LogInformation("Current system proxy for {TestUri}: {ProxyUri}", testUri, proxyUri);
 
-            return proxyServer;
+                _logger.LogInformation("Proxy server created and configured");
+                return proxyServer;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create proxy server");
+                throw;
+            }
         }
 
         private async Task ProxyServer_BeforeRequest(object sender, SessionEventArgs e)
         {
-            if (UserConfigurationHasChanged)
+            try
             {
-                var schedule = await UserConfiguration.LoadBlockSchedule();
-                blockScheduleCache = schedule?.Block;
-                var websites = await UserConfiguration.LoadBlockedWebsites();
-                blockSettingUrlCache = websites?.UrlBlock;
-                UserConfigurationHasChanged = false;
+                // Log every incoming request
+                _logger.LogInformation("Intercepted request: URL={Url}, Method={Method}, IsHttps={IsHttps}",
+                    e.HttpClient.Request.Url, e.HttpClient.Request.Method, e.HttpClient.Request.IsHttps);
+
+                if (UserConfigurationHasChanged)
+                {
+                    _logger.LogInformation("Reloading configuration due to change...");
+                    var schedule = await UserConfiguration.LoadBlockSchedule();
+                    blockScheduleCache = schedule?.Block;
+                    var websites = await UserConfiguration.LoadBlockedWebsites();
+                    blockSettingUrlCache = websites?.UrlBlock;
+                    UserConfigurationHasChanged = false;
+                    _logger.LogInformation("Configuration reloaded");
+                }
+
+                if (blockSettingUrlCache == null)
+                {
+                    _logger.LogWarning("blockSettingUrlCache is null, skipping request processing");
+                    return;
+                }
+
+                var url = e.HttpClient.Request.Url;
+                foreach (var kvp in blockSettingUrlCache)
+                {
+                    var blockedKey = kvp.Key;
+                    var blockData = kvp.Value;
+
+                    if (!url.Contains(blockedKey, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (blockData.Type == BlockType.Full)
+                    {
+                        _logger.LogInformation("Blocking URL (Full): {Url}", url);
+                        e.Ok(htmlContent);
+                        return;
+                    }
+
+                    if (blockData.Type == BlockType.Schedule && blockScheduleCache != null)
+                    {
+                        var now = DateTime.Now;
+                        var day = now.DayOfWeek;
+                        if (blockScheduleCache.TryGetValue(day, out var blockTimes))
+                        {
+                            foreach (var (start, end) in blockTimes)
+                            {
+                                if (now.TimeOfDay >= start && now.TimeOfDay <= end)
+                                {
+                                    _logger.LogInformation("Blocking URL (Schedule): {Url}", url);
+                                    e.Ok(htmlContent);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            if (blockSettingUrlCache == null)
-                return;
-
-            string host = e.HttpClient.Request.RequestUri?.Host ?? "";
-            string fullUrl = e.HttpClient.Request.Url;
-
-            foreach (var kvp in blockSettingUrlCache)
+            catch (Exception ex)
             {
-                string blockedKey = kvp.Key;
-                var blockData = kvp.Value;
-
-                bool isBlockedHost = host.Contains(blockedKey, StringComparison.OrdinalIgnoreCase);
-                bool isBlockedUrl = fullUrl.Contains(blockedKey, StringComparison.OrdinalIgnoreCase);
-
-                if (e.HttpClient.Request.Method == "CONNECT" && isBlockedHost)
-                {
-                    if (ShouldBlockNow(blockData))
-                    {
-                        e.Ok(htmlContent);
-                        return;
-                    }
-                }
-
-                else
-                {
-                    string url = e.HttpClient.Request.Url;
-                    if (IsBlockedUrl(url) && ShouldBlockNow(blockData))
-                    {
-                        e.Ok(htmlContent);
-                        return;
-                    }
-                }
+                _logger.LogError(ex, "Error processing proxy request for URL: {Url}", e.HttpClient.Request.Url);
             }
         }
 
-        private bool ShouldBlockNow(BlockData blockData)
+        private async Task ProxyServer_BeforeTunnelConnect(object sender, TunnelConnectSessionEventArgs e)
         {
-            if (blockData.Type == BlockType.Full)
-                return true;
-
-            if (blockData.Type == BlockType.Schedule && blockScheduleCache != null)
+            try
             {
-                var now = DateTime.Now;
-                var day = now.DayOfWeek;
-                if (blockScheduleCache.TryGetValue(day, out var blockTimes))
+                // Log CONNECT tunnel requests for HTTPS
+                _logger.LogInformation("Intercepted CONNECT request: Host={Host}, IsHttps={IsHttps}",
+                    e.HttpClient.Request.RequestUri.Host, e.HttpClient.Request.IsHttps);
+
+                if (UserConfigurationHasChanged)
                 {
-                    foreach (var (start, end) in blockTimes)
+                    _logger.LogInformation("Reloading configuration due to change...");
+                    var schedule = await UserConfiguration.LoadBlockSchedule();
+                    blockScheduleCache = schedule?.Block;
+                    var websites = await UserConfiguration.LoadBlockedWebsites();
+                    blockSettingUrlCache = websites?.UrlBlock;
+                    UserConfigurationHasChanged = false;
+                    _logger.LogInformation("Configuration reloaded");
+                }
+
+                if (blockSettingUrlCache == null)
+                {
+                    _logger.LogWarning("blockSettingUrlCache is null, skipping CONNECT processing");
+                    return;
+                }
+
+                var host = e.HttpClient.Request.RequestUri.Host;
+                foreach (var kvp in blockSettingUrlCache)
+                {
+                    var blockedKey = kvp.Key;
+                    var blockData = kvp.Value;
+
+                    if (!host.Contains(blockedKey, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (blockData.Type == BlockType.Full)
                     {
-                        if (now.TimeOfDay >= start && now.TimeOfDay <= end)
-                            return true;
+                        _logger.LogInformation("Blocking CONNECT (Full): {Host}", host);
+                        e.DenyConnect = true;
+                        return;
+                    }
+
+                    if (blockData.Type == BlockType.Schedule && blockScheduleCache != null)
+                    {
+                        var now = DateTime.Now;
+                        var day = now.DayOfWeek;
+                        if (blockScheduleCache.TryGetValue(day, out var blockTimes))
+                        {
+                            foreach (var (start, end) in blockTimes)
+                            {
+                                if (now.TimeOfDay >= start && now.TimeOfDay <= end)
+                                {
+                                    _logger.LogInformation("Blocking CONNECT (Schedule): {Host}", host);
+                                    e.DenyConnect = true;
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
             }
-            return false;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing CONNECT request for Host: {Host}", e.HttpClient.Request.RequestUri.Host);
+            }
         }
     }
 }

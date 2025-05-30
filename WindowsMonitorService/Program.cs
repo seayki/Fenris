@@ -13,7 +13,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     })
     .UseWindowsService(options =>
     {
-        options.ServiceName = "WindowsMonitorService";
+        options.ServiceName = "Windows Monitor Service";
     })
     .Build();
 await host.RunAsync();
