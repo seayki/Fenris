@@ -8,6 +8,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -34,6 +35,20 @@ namespace FenrisUI
 
         private ObservableCollection<Process> _processes = new();
         public ObservableCollection<Process> SelectedProcesses { get; } = new();
+
+        private bool _proxyStatus;
+        public bool proxyStatus
+        {
+            get => _proxyStatus;
+            set
+            {
+                if (_proxyStatus != value)
+                {
+                    _proxyStatus = value;
+                    OnPropertyChanged(nameof(proxyStatus));
+                }
+            }
+        }
         public ObservableCollection<Process> Processes
         {
             get => _processes;
@@ -114,8 +129,8 @@ namespace FenrisUI
             var discoveredProcesses = await DiscoveryService.DiscoverProcesses();
             var blockSetting = await UserConfiguration.LoadBlockedApps();
             var blockSettingUrl = await UserConfiguration.LoadBlockedWebsites();
-            var blockSchedule = await UserConfiguration.LoadBlockSchedule();
-         
+            var blockSchedule = await UserConfiguration.LoadBlockSchedule(); 
+
             LoadDiscoveredProcesses(discoveredProcesses);
 
             if (blockSettingUrl != null)
@@ -132,7 +147,6 @@ namespace FenrisUI
             }
             _ = UpdateBlockStatusLoop();
         }
-
 
         private void OnPropertyChanged(string propertyName)
         {
@@ -738,6 +752,66 @@ namespace FenrisUI
             return result == ContentDialogResult.Primary;
         }
 
+        #endregion
+
+        #region Proxy
+        public bool IsSystemProxyEnabled()
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Internet Settings", false))
+            {
+                if (key != null)
+                {
+                    object? proxyEnable = key.GetValue("ProxyEnable");
+                    return proxyEnable is int value && value == 1;
+                }
+                return false;
+            }
+        }
+        private void ProxyToggled_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (sender is ToggleSwitch toggleSwitch)
+            {
+                if (toggleSwitch.IsOn)
+                {
+                    EnableSystemProxy();
+                }
+                else
+                {
+                    DisableSystemProxy();
+                }
+            }
+            ShowInfoMessage("Proxy settings updated.", InfoEnum.success);
+        }
+
+        public void EnableSystemProxy()
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Internet Settings", true))
+            {
+                if (key != null)
+                {
+                    key.SetValue("ProxyEnable", 1);
+                    key.SetValue("ProxyServer", "localhost:8000");
+                    key.SetValue("ProxyOverride", "<local>");
+                }
+            }
+        }
+
+        public void DisableSystemProxy()
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Internet Settings", true))
+            {
+                if (key != null)
+                {
+                    key.SetValue("ProxyEnable", 0);
+                    key.DeleteValue("ProxyServer", false);
+                    key.DeleteValue("ProxyOverride", false);
+                }
+            }
+            ShowInfoMessage("Proxy settings updated.", InfoEnum.success);
+        }
         #endregion
     }
 }

@@ -155,7 +155,7 @@
 
 
 
-                <PivotItem Background="#ffffff" Padding="20" Margin="0,0,0,0">
+                <PivotItem Background="#ffffff" Padding="20" Margin="0,20,0,0">
                     <PivotItem.Header>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Schedule" VerticalAlignment="Center"/>
@@ -262,6 +262,7 @@
                             <!-- Blocked List: takes all remaining space -->
                         </Grid.RowDefinitions>
 
+                        <ToggleSwitch Header="Toggle Proxy" IsOn="{x:Bind proxyStatus, Mode=TwoWay}" FontSize="15" HorizontalAlignment="Right" VerticalAlignment="Top" Toggled="ProxyToggled_Toggled"/>
                         <!-- Top Section -->
                         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="10" Width="Auto" MaxWidth="1350">
                             <TextBlock Text="Enter Websites To Block" FontSize="22" FontWeight="Medium" Margin="0, 0, 0, 10" HorizontalAlignment="Center"/>

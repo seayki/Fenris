@@ -3,7 +3,6 @@ using Fenris.Storage;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
-using Titanium.Web.Proxy.Network;
 using System.Net;
 
 namespace FenrisService.BackgroundWorkers.WebProxy
@@ -140,17 +139,7 @@ namespace FenrisService.BackgroundWorkers.WebProxy
                 explicitEndpoint.BeforeTunnelConnectRequest += ProxyServer_BeforeTunnelConnect;
 
                 _logger.LogInformation("Setting system HTTP/HTTPS proxy...");
-                proxyServer.SetAsSystemHttpProxy(explicitEndpoint);
-                proxyServer.SetAsSystemHttpsProxy(explicitEndpoint);
 
-                // Verify system proxy settings
-                _logger.LogInformation("System proxy settings applied. Checking current proxy configuration...");
-                var currentProxy = WebRequest.GetSystemWebProxy();
-                var testUri = new Uri("http://example.com");
-                var proxyUri = currentProxy.GetProxy(testUri);
-                _logger.LogInformation("Current system proxy for {TestUri}: {ProxyUri}", testUri, proxyUri);
-
-                _logger.LogInformation("Proxy server created and configured");
                 return proxyServer;
             }
             catch (Exception ex)
