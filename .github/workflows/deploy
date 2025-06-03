@@ -1,0 +1,55 @@
+name: Build and Upload to Azure Blob Storage
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch; adjust as needed
+
+jobs:
+  build-and-upload:
+    runs-on: windows-latest  # Windows runner for .NET and Inno Setup
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up .NET
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'  # Updated to match TargetFramework net8.0-windows10.0.19041.0
+
+      # Publish FenrisUI
+      - name: Publish FenrisUI
+        run: |
+          dotnet publish "Fenris/FenrisUI/FenrisUI.csproj" -c Release -r win-x64 --self-contained true
+        shell: pwsh
+
+      # Publish WindowsMonitorService
+      - name: Publish WindowsMonitorService
+        run: |
+          dotnet publish "Fenris/WindowsMonitorService/WindowsMonitorService.csproj" -c Release -r win-x64
+        shell: pwsh
+
+      # Install Inno Setup
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+        shell: pwsh
+
+      # Build Inno Setup Installer
+      - name: Build Inno Setup Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "FenrisSetupScript.iss"
+        shell: pwsh
+
+      # Upload to Azure Blob Storage
+      - name: Upload to Azure Blob Storage
+        uses: azure/storage-blob@v1
+        with:
+          connection-string: '' 
+          account-name: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          container-name: ${{ secrets.AZURE_CONTAINER_NAME }}
+          sas-token: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
+          source-path: "Output/FenrisBlockInstaller.exe"  # Adjust to match your Inno Setup output path
+          destination-path: "FenrisBlockInstaller-${{ github.run_id }}.exe"  # Unique name to avoid overwriting
